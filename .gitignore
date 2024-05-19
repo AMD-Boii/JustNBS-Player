@@ -1,5 +1,2 @@
 *.nbs
-*.del
-*.pit
-*.vol
-*.ins
+*.json
