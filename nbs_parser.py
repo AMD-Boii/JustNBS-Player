@@ -152,29 +152,40 @@ def set_panning(n_pan, l_pan):
     else:
         return round(max(-100, n_pan + l_pan), 2)
 
+# FIXME
 def sepparate_data(raw_data: list[list, int]) -> list[list]:
     final = []
     data = []
     counter = 0
+
     while counter < len(raw_data):
-        if len(str(data).replace(' ', '')) < 24990:
+        if len(str(data).replace(' ', '')) < 25000:
             data.append(raw_data[counter])
-            counter += 1
+            
+            if len(str(data).replace(' ', '')) >= 25000:
+                data.pop()
+                final.append(data)
+                data = []
+            else:
+                counter += 1
+                
         else:
             final.append(data)
             data = []
+    final.append(data)
     
     return final
 
-def dump_data(data):
+def dump_data(sepparated_data):
     i = 0
-    for element in data:
-        element = json.dumps(data, separators=(',', ':'))
+    for element in sepparated_data:
+        data = json.dumps(element, separators=(',', ':'))
         with open(file[:-4]+'_'+str(i)+'.json', 'w') as json_result:
-            json_result.write(element)
+            json_result.write(data)
         i += 1
 
-file = 'Queen — Bohemian Rhapsody.nbs'
+#file = 'Queen — Bohemian Rhapsody.nbs'
+file = 'wethands.nbs'
 data = parse(file)
 data = sepparate_data(data)
 dump_data(data)
