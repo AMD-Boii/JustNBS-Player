@@ -105,8 +105,6 @@ def parse(nbs_file: str):
                 if delay != 0:
                     sequence.append(int(delay * tempo[header.tempo]))
                     delay = 0
-            
-            
         
         print(len(str(sequence)))
         return sequence
@@ -135,6 +133,7 @@ def set_pitch_octave(key, pitch):
         return None
     
     pitch = round(0.5*2**((key-9-octave_range*24)/12), 4)
+    if pitch % 1 == 0.0: pitch = int(pitch)
     if octave_range == 1: octave_range = ''
     else: octave_range = '_' + str(octave_range - 1)
     
@@ -142,6 +141,7 @@ def set_pitch_octave(key, pitch):
 
 def set_volume(n_vel, l_vol):
     vol = round(n_vel / 10000 * l_vol, 2)
+    if vol % 1 == 0.0: vol = int(vol)
     return vol
 
 def set_panning(n_pan, l_pan):
@@ -152,16 +152,18 @@ def set_panning(n_pan, l_pan):
     else:
         return round(max(-100, n_pan + l_pan), 2)
 
-def sepparate_data(data):
+def sepparate_data(raw_data: list[list, int]) -> list[list]:
     final = []
-    for value in data:
+    data = []
+    counter = 0
+    while counter < len(raw_data):
         if len(str(data).replace(' ', '')) < 24990:
-            data.append(value)
+            data.append(raw_data[counter])
+            counter += 1
         else:
             final.append(data)
             data = []
-            
-
+    
     return final
 
 def dump_data(data):
