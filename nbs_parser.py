@@ -1,3 +1,5 @@
+from numpy import sign
+
 import pynbs
 import json
 
@@ -80,21 +82,20 @@ def parse(nbs_file: str):
                 if note.tick == tick:
                     if layer.lock: continue
                     volume = set_volume(
-                        note.velocity, layer.volume
+                        note.velocity, layer.volume,
+                        note.panning, layer.panning
                     )
-                    if volume <= 0: continue
                     pitch_octave = set_pitch_octave(note.key, note.pitch)
                     if pitch_octave is None: continue
-                    panning = set_panning(note.panning, layer.panning)
-
+                    
                     element = [0, 0, 0, 0]
                     element[0] = str(
                         instrument[note.instrument] +
                         pitch_octave[1]
                     )
                     element[1] = pitch_octave[0]
-                    element[2] = volume
-                    element[3] = panning
+                    element[2] = volume[0]
+                    element[3] = volume[1]
                     
                     sequence.append(element)
                     
@@ -106,7 +107,6 @@ def parse(nbs_file: str):
                     sequence.append(int(delay * tempo[header.tempo]))
                     delay = 0
         
-        print(len(str(sequence)))
         return sequence
     
     except Exception as ex:
@@ -139,20 +139,39 @@ def set_pitch_octave(key, pitch):
     
     return (pitch, octave_range)
 
-def set_volume(n_vel, l_vol):
-    vol = round(n_vel / 10000 * l_vol, 2)
-    if vol % 1 == 0.0: vol = int(vol)
-    return vol
-
-def set_panning(n_pan, l_pan):
-    if n_pan == 0 or l_pan == 0:
-        return round(n_pan, 2)
-    elif n_pan > 0:
-        return round(min(100, n_pan + l_pan), 2)
+def set_volume(n_vel, l_vol, n_pan, l_pan):
+    if l_pan == 0:
+        lower_bound = -100
+        upper_bound = 100
+    elif l_pan > 0:
+        lower_bound = -100 + l_pan
+        upper_bound = 100
     else:
-        return round(max(-100, n_pan + l_pan), 2)
+        lower_bound = -100
+        upper_bound = 100 + l_pan
 
-# FIXME
+    pan = lower_bound + ((n_pan + 100) * (upper_bound - lower_bound) / 200)
+
+    vol = n_vel / 10000 * l_vol
+
+    if pan == 0:
+        vol_l = vol_r = vol
+    elif pan < 0:
+        vol_l = vol
+        vol_r = vol * (100 + pan) / 100
+    elif pan > 0:
+        vol_l = vol * (100 - pan) / 100
+        vol_r = vol
+    
+    vol_l = round(vol_l, 2)
+    vol_r = round(vol_r, 2)
+
+    if vol_l % 1 == 0.0: vol_l = int(vol_l)
+    if vol_r % 1 == 0.0: vol_r = int(vol_r)
+
+    return (vol_l, vol_r)
+    
+
 def sepparate_data(raw_data: list[list, int]) -> list[list]:
     final = []
     data = []
@@ -171,7 +190,6 @@ def sepparate_data(raw_data: list[list, int]) -> list[list]:
                 didLastAppend = True
             else:
                 counter += 1
-                
         else:
             final.append(data)
             data = []
@@ -190,7 +208,8 @@ def dump_data(sepparated_data):
         i += 1
 
 #file = 'Queen — Bohemian Rhapsody.nbs'
-file = 'wethands.nbs'
+#file = 'wethands.nbs'
+file = 'test.nbs'
 data = parse(file)
 data = sepparate_data(data)
 dump_data(data)
