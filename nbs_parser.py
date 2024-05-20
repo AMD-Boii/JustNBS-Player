@@ -157,22 +157,27 @@ def sepparate_data(raw_data: list[list, int]) -> list[list]:
     final = []
     data = []
     counter = 0
+    didLastAppend = False
 
     while counter < len(raw_data):
         if len(str(data).replace(' ', '')) < 25000:
             data.append(raw_data[counter])
+            didLastAppend = False
             
             if len(str(data).replace(' ', '')) >= 25000:
                 data.pop()
                 final.append(data)
                 data = []
+                didLastAppend = True
             else:
                 counter += 1
                 
         else:
             final.append(data)
             data = []
-    final.append(data)
+            didLastAppend = True
+
+    if not didLastAppend: final.append(data)
     
     return final
 
