@@ -54,7 +54,7 @@ terminator = (
     1, # show lyrics
 )
 
-
+# FIXME
 def parse(nbs_file: str):
     '''
     Parses OpenNBS file that matches with some conditions.\n
@@ -72,7 +72,6 @@ def parse(nbs_file: str):
         
         assert header.tempo in tempo.keys()
         
-        delay = 0
         for tick in range(header.song_length+1):
             for note_id in range(last_note_id, len(notes)):
                 last_note_id = note_id
@@ -88,24 +87,27 @@ def parse(nbs_file: str):
                     pitch_octave = set_pitch_octave(note.key, note.pitch)
                     if pitch_octave is None: continue
                     
-                    element = [0, 0, 0, 0]
-                    element[0] = str(
-                        instrument[note.instrument] +
-                        pitch_octave[1]
-                    )
-                    element[1] = pitch_octave[0]
-                    element[2] = volume[0]
-                    element[3] = volume[1]
+                    element = [
+                        note.instrument,
+                        pitch_octave[1], 
+                        pitch_octave[0],
+                        volume[0],
+                        volume[1]
+                    ]
                     
                     sequence.append(element)
                     
                 else:
-                    delay += 1
+                    if type(sequence[-1]) is int:
+                        print('1')
+                        sequence[-1] += tempo[header.tempo]
+                    else:
+                        sequence.append(tempo[header.tempo])
                     break
 
-                if delay != 0:
-                    sequence.append(int(delay * tempo[header.tempo]))
-                    delay = 0
+                # if delay != 0:
+                #     sequence.append(delay * tempo[header.tempo])
+                #     delay = 0
         
         return sequence
     
@@ -209,7 +211,7 @@ def dump_data(sepparated_data):
 
 #file = 'Queen — Bohemian Rhapsody.nbs'
 #file = 'wethands.nbs'
-file = 'test.nbs'
+file = 'intro.nbs'
 data = parse(file)
 data = sepparate_data(data)
 dump_data(data)
