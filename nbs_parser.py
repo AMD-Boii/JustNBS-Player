@@ -76,7 +76,6 @@ def parse(nbs_file: str):
                     
                 else:
                     if type(sequence[-1]) is int:
-                        print('1')
                         sequence[-1] += tempo[header.tempo]
                     else:
                         sequence.append(tempo[header.tempo])
@@ -182,8 +181,8 @@ def dump_data(sepparated_data):
         i += 1
 
 #file = 'Queen — Bohemian Rhapsody.nbs'
-#file = 'wethands.nbs'
-file = 'intro.nbs'
+file = 'master_of_puppets.nbs'
+#file = 'intro.nbs'
 data = parse(file)
 data = sepparate_data(data)
 dump_data(data)
