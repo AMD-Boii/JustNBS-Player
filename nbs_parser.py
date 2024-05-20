@@ -23,13 +23,11 @@ instrument = (
     'pling',
 )
 
-pattern = {
-    'sound': 'minecraft:block.note_block.',
-    'pitch': 0,
-    'volume': 0,
-    'variation': '',
-    'source': 'RECORD',
-}
+pattern = [
+    '',
+    0,
+    0,
+]
 
 terminator = (
     0, # tempo
@@ -62,16 +60,16 @@ def parse(nbs_file):
                 panning = set_panning(note.panning, layer.panning)
 
                 element = pattern.copy()
-                element['sound'] = str(
-                    pattern['sound'] +
+                element[0] = str(
                     instrument[note.instrument] +
                     pitch_octave[1]
                 )
-                element['pitch'] = pitch_octave[0]
-                element['volume'] = 1
+                element[1] = pitch_octave[0]
+                element[2] = volume
+                #element[3] = panning
                 
                 sequence.append(element)
-                sequence.append(panning)
+                #sequence.append(panning)
             else:
                 sequence.append(terminator[0])
                 break
@@ -106,7 +104,7 @@ def set_pitch_octave(key, pitch):
     return (pitch, octave_range)
 
 def set_volume(n_vel, l_vol):
-    vol = round(n_vel / 100 * l_vol, 8)
+    vol = round(n_vel / 10000 * l_vol, 8)
     return vol
 
 def set_panning(n_pan, l_pan):
@@ -117,9 +115,20 @@ def set_panning(n_pan, l_pan):
     else:
         return round(max(-100, n_pan + l_pan), 2)
 
+#data = json.dumps(parse('Queen — Bohemian Rhapsody.nbs'), separators=(',', ':'))
+file = 'show.nbs'
+data = []
+final = []
+for value in parse(file):
+    if len(str(data)) < 25000:
+        data.append(value)
+    else:
+        final.append(data)
+        data = []
 
-data = json.dumps(parse('wethands.nbs'), separators=(',', ':'))
-print(len(str(data)))
-
-with open('test.json', 'w') as json_result:
-    json_result.write(data)
+i = 0
+for data in final:
+    data = json.dumps(data, separators=(',', ':'))
+    with open(file[:-4]+'_'+str(i)+'.json', 'w') as json_result:
+        json_result.write(data)
+    i += 1
