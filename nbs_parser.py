@@ -1,5 +1,3 @@
-from numpy import sign
-
 import pynbs
 import json
 
