@@ -28,26 +28,6 @@ tempo = {
     1.0 : 20,
 }
 
-# BASE INSTRUMENTS
-instrument = (
-    'harp',
-    'bass',
-    'basedrum',
-    'snare',
-    'hat',
-    'guitar',
-    'flute',
-    'bell',
-    'chime',
-    'xylophone',
-    'iron_xylophone',
-    'cow_bell',
-    'didgeridoo',
-    'bit',
-    'banjo',
-    'pling',
-)
-
 # SPECIAL TERMINATORS
 terminator = (
     0, # tempo
@@ -104,10 +84,6 @@ def parse(nbs_file: str):
                     else:
                         sequence.append(tempo[header.tempo])
                     break
-
-                # if delay != 0:
-                #     sequence.append(delay * tempo[header.tempo])
-                #     delay = 0
         
         return sequence
     
@@ -173,7 +149,6 @@ def set_volume(n_vel, l_vol, n_pan, l_pan):
 
     return (vol_l, vol_r)
     
-
 def sepparate_data(raw_data: list[list, int]) -> list[list]:
     final = []
     data = []
