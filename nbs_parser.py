@@ -42,6 +42,7 @@ def parse(nbs_file: str):
         notes = nbs.notes
         layers = nbs.layers
         last_note_id = 0
+        header.song_length *= tempo[header.tempo]
         duration = str(datetime.timedelta(seconds=header.song_length // 20))
         if duration[0] == '0': duration = duration[-5:]
         if duration[0] == '0': duration = duration[-4:]
@@ -196,7 +197,7 @@ def dump_data(sepparated_data):
         json_result.write(data)
 
 #file = 'Queen — Bohemian Rhapsody.nbs'
-file = 'happy.nbs'
+file = 'show.nbs'
 #file = 'intro.nbs'
 data = parse(file)
 data = sepparate_data(data)
