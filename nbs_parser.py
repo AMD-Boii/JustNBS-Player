@@ -53,8 +53,7 @@ terminator = (
 )
 
 
-
-def parse(nbs_file):
+def parse(nbs_file: str):
     '''
     Parses OpenNBS file that matches with some conditions.\n
     ONBS version must be 5.\n
@@ -71,6 +70,7 @@ def parse(nbs_file):
         
         assert header.tempo in tempo.keys()
         
+        delay = 0
         for tick in range(header.song_length+1):
             for note_id in range(last_note_id, len(notes)):
                 last_note_id = note_id
@@ -97,10 +97,16 @@ def parse(nbs_file):
                     element[3] = panning
                     
                     sequence.append(element)
-
+                    
                 else:
-                    sequence.append(terminator[0])
+                    delay += 1
                     break
+
+                if delay != 0:
+                    sequence.append(int(delay * tempo[header.tempo]))
+                    delay = 0
+            
+            
         
         print(len(str(sequence)))
         return sequence
@@ -154,6 +160,7 @@ def sepparate_data(data):
         else:
             final.append(data)
             data = []
+            
 
     return final
 
@@ -162,12 +169,13 @@ def dump_data(data):
     for element in data:
         element = json.dumps(data, separators=(',', ':'))
         with open(file[:-4]+'_'+str(i)+'.json', 'w') as json_result:
-            json_result.write(data)
+            json_result.write(element)
         i += 1
 
 file = 'Queen — Bohemian Rhapsody.nbs'
-data = []
-
+data = parse(file)
+data = sepparate_data(data)
+dump_data(data)
 
 
 
