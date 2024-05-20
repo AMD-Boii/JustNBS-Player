@@ -34,7 +34,6 @@ terminator = (
     1, # show lyrics
 )
 
-# FIXME
 def parse(nbs_file: str):
     '''
     Parses OpenNBS file that matches with some conditions.\n
