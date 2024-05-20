@@ -1,5 +1,6 @@
 import pynbs
 import json
+import datetime
 
 
 # TEMPO
@@ -26,30 +27,39 @@ tempo = {
     1.0 : 20,
 }
 
-# SPECIAL TERMINATORS
-terminator = (
-    0, # tempo
-    1, # show lyrics
-)
-
 def parse(nbs_file: str):
     '''
     Parses OpenNBS file that matches with some conditions.\n
-    ONBS version must be 5.\n
+    OpenNBS version must be 5.\n
     The tempo must match with the defined tempo dictionary.
     '''
 
     try:
         nbs = pynbs.read(nbs_file)
         header = nbs.header
+        assert header.version == 5
+        assert header.tempo in tempo.keys()
         notes = nbs.notes
         layers = nbs.layers
         last_note_id = 0
-        sequence = []
+        duration = str(datetime.timedelta(seconds=header.song_length // 20))
+        if duration[0] == '0': duration = duration[-5:]
+        if duration[0] == '0': duration = duration[-4:]
+        sequence = [
+            [
+                'file amount',
+                header.song_length,
+                1 if header.loop else 0,
+                header.loop_start,
+                header.max_loop_count,
+                duration,
+                header.original_author,
+                header.song_name,
+                header.song_author,
+            ],
+        ]
         
-        assert header.tempo in tempo.keys()
-        
-        for tick in range(header.song_length+1):
+        for tick in range(header.song_length + 1):
             for note_id in range(last_note_id, len(notes)):
                 last_note_id = note_id
                 note = notes[note_id]
@@ -179,9 +189,14 @@ def dump_data(sepparated_data):
         with open(file[:-4]+'_'+str(i)+'.json', 'w') as json_result:
             json_result.write(data)
         i += 1
+    
+    sepparated_data[0][0][0] = i - 1
+    data = json.dumps(sepparated_data[0], separators=(',', ':'))
+    with open(file[:-4]+'_0.json', 'w') as json_result:
+        json_result.write(data)
 
 #file = 'Queen — Bohemian Rhapsody.nbs'
-file = 'master_of_puppets.nbs'
+file = 'happy.nbs'
 #file = 'intro.nbs'
 data = parse(file)
 data = sepparate_data(data)
