@@ -5,7 +5,6 @@ import pynbs
 import json
 import datetime
 
-
 TEMPO = (
     20.0, 10.0, 6.67, 5.0, 4.0,
     3.33, 2.86, 2.5, 2.22, 2.0,
@@ -47,7 +46,6 @@ def get_metadata(nbs_file: str = '') -> Union[list, str]:
     
     except AssertionError as assertion:
         return assertion
-
 
 def parse(length: int,
           tempo: int,
@@ -98,7 +96,6 @@ def parse(length: int,
     
     except Exception as ex:
         return ex
-
  
 def set_pitch_octave(key, pitch):
     '''
@@ -128,7 +125,6 @@ def set_pitch_octave(key, pitch):
     else: octave_range = '_' + str(octave_range - 1)
     
     return (pitch, octave_range)
-
 
 def set_volume(n_vel, l_vol, n_pan, l_pan):
     if l_pan == 0:
@@ -162,8 +158,7 @@ def set_volume(n_vel, l_vol, n_pan, l_pan):
 
     return (vol_l, vol_r)
 
-
-def sepparate_data(raw_data: list[list, int]) -> list[list]:
+def separate_data(raw_data: list[list, int]) -> list[list]:
     final = []
     data = []
     counter = 0
@@ -190,7 +185,6 @@ def sepparate_data(raw_data: list[list, int]) -> list[list]:
     
     return final
 
-
 def dump_data(sepparated_data):
     i = 0
     for element in sepparated_data:
@@ -209,10 +203,10 @@ def dump_data(sepparated_data):
 # file = 'show.nbs'
 # file = 'intro.nbs'
 # data = parse(file)
-# data = sepparate_data(data)
+# data = separate_data(data)
 # dump_data(data)
 
-with open('test.nbs', "rb") as fileobj:
-    print(get_metadata(fileobj))
+# with open('test.nbs', "rb") as fileobj:
+#     print(get_metadata(fileobj))
 
 
