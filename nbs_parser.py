@@ -1,20 +1,22 @@
+from __future__ import annotations
+from typing import Optional, Union
+
 import pynbs
 import json
 import datetime
 
 
-# TEMPO
-tempo = {
+TEMPO = {
     20.0 : 1,
     10.0 : 2,
     6.67 : 3,
-    5.0 : 4,
-    4.0 : 5,
+    5.0  : 4,
+    4.0  : 5,
     3.33 : 6,
     2.86 : 7,
-    2.5 : 8,
+    2.5  : 8,
     2.22 : 9,
-    2.0 : 10,
+    2.0  : 10,
     1.82 : 11,
     1.67 : 12,
     1.54 : 13,
@@ -24,10 +26,32 @@ tempo = {
     1.18 : 17,
     1.11 : 18,
     1.05 : 19,
-    1.0 : 20,
+    1.0  : 20,
 }
 
-def parse(nbs_file: str):
+
+def get_metadata(nbs_data: str = '') -> Union[list, str]:
+    '''
+    Reads metadata from the NBS file, checks conditions\n
+    and returns header and NBS data for further parsing\n
+    if matches these conditions.
+    '''
+    try:
+        try:
+            nbs_file = pynbs.Parser(nbs_data).read_file()
+        except Exception:
+            return 'Wrong or corrupted data'
+        
+        header = nbs_file.header
+
+        assert header.version == 5, 'Not supported NBS API'
+        assert header.tempo in TEMPO.keys(), 'Not supported tempo'
+    
+    except AssertionError as assertion:
+        return assertion
+
+
+def parse(nbs_file: str) -> Union[list, str]:
     '''
     Parses OpenNBS file that matches with some conditions.\n
     OpenNBS version must be 5.\n
@@ -38,11 +62,11 @@ def parse(nbs_file: str):
         nbs = pynbs.read(nbs_file)
         header = nbs.header
         assert header.version == 5
-        assert header.tempo in tempo.keys()
+        
         notes = nbs.notes
         layers = nbs.layers
         last_note_id = 0
-        header.song_length *= tempo[header.tempo]
+        header.song_length *= TEMPO[header.tempo]
         duration = str(datetime.timedelta(seconds=header.song_length // 20))
         if duration[0] == '0': duration = duration[-5:]
         if duration[0] == '0': duration = duration[-4:]
@@ -87,9 +111,9 @@ def parse(nbs_file: str):
                     
                 else:
                     if type(sequence[-1]) is int:
-                        sequence[-1] += tempo[header.tempo]
+                        sequence[-1] += TEMPO[header.tempo]
                     else:
-                        sequence.append(tempo[header.tempo])
+                        sequence.append(TEMPO[header.tempo])
                     break
         
         return sequence
@@ -97,8 +121,11 @@ def parse(nbs_file: str):
     except Exception as ex:
         return ex
 
-# Based on https://minecraft.fandom.com/wiki/Note_Block#Notes
+ 
 def set_pitch_octave(key, pitch):
+    '''
+    Based on https://minecraft.fandom.com/wiki/Note_Block#Notes
+    '''
     key += pitch * 0.01
     octave_range = 1
     
