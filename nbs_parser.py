@@ -6,31 +6,19 @@ import json
 import datetime
 
 
-TEMPO = {
-    20.0 : 1,
-    10.0 : 2,
-    6.67 : 3,
-    5.0  : 4,
-    4.0  : 5,
-    3.33 : 6,
-    2.86 : 7,
-    2.5  : 8,
-    2.22 : 9,
-    2.0  : 10,
-    1.82 : 11,
-    1.67 : 12,
-    1.54 : 13,
-    1.43 : 14,
-    1.33 : 15,
-    1.25 : 16,
-    1.18 : 17,
-    1.11 : 18,
-    1.05 : 19,
-    1.0  : 20,
-}
+TEMPO = (
+    20.0, 10.0, 6.67, 5.0, 4.0,
+    3.33, 2.86, 2.5, 2.22, 2.0,
+    1.82, 1.67, 1.54, 1.43, 1.33,
+    1.25, 1.18, 1.11, 1.05, 1.0,
+    0.95, 0.91, 0.87, 0.83, 0.8,
+    0.77, 0.74, 0.71, 0.69, 0.67,
+    0.65, 0.62, 0.61, 0.59, 0.57,
+    0.56, 0.54, 0.53, 0.51, 0.5,
+)
 
 
-def get_metadata(nbs_data: str = '') -> Union[list, str]:
+def get_metadata(nbs_file: str = '') -> Union[list, str]:
     '''
     Reads metadata from the NBS file, checks conditions\n
     and returns header and NBS data for further parsing\n
@@ -38,53 +26,43 @@ def get_metadata(nbs_data: str = '') -> Union[list, str]:
     '''
     try:
         try:
-            nbs_file = pynbs.Parser(nbs_data).read_file()
+            nbs_data = pynbs.Parser(nbs_file).read_file()
         except Exception:
             return 'Wrong or corrupted data'
         
-        header = nbs_file.header
+        header = nbs_data.header
+
+        print(header.tempo)
 
         assert header.version == 5, 'Not supported NBS API'
-        assert header.tempo in TEMPO.keys(), 'Not supported tempo'
+        assert header.tempo in TEMPO, 'Not supported tempo'
+
+        length = header.song_length * (TEMPO.index(header.tempo) + 1)
+        duration = str(datetime.timedelta(seconds=length // 20))
+
+        notes = nbs_data.notes
+        layers = nbs_data.layers
+
+        return [header, notes, layers]
     
     except AssertionError as assertion:
         return assertion
 
 
-def parse(nbs_file: str) -> Union[list, str]:
+def parse(length: int,
+          tempo: int,
+          notes: list[pynbs.Note],
+          layers: list[pynbs.Layer]) -> Union[list[Union[list, int]], str]:
     '''
-    Parses OpenNBS file that matches with some conditions.\n
-    OpenNBS version must be 5.\n
-    The tempo must match with the defined tempo dictionary.
+    Parses NBS data (notes, layers) and outputs a list of\n
+    JSON-ready list that contains lists of every single\n
+    note parameters and delays.
     '''
-
     try:
-        nbs = pynbs.read(nbs_file)
-        header = nbs.header
-        assert header.version == 5
-        
-        notes = nbs.notes
-        layers = nbs.layers
         last_note_id = 0
-        header.song_length *= TEMPO[header.tempo]
-        duration = str(datetime.timedelta(seconds=header.song_length // 20))
-        if duration[0] == '0': duration = duration[-5:]
-        if duration[0] == '0': duration = duration[-4:]
-        sequence = [
-            [
-                'file amount',
-                header.song_length,
-                1 if header.loop else 0,
-                header.loop_start,
-                header.max_loop_count,
-                duration,
-                header.original_author,
-                header.song_name,
-                header.song_author,
-            ],
-        ]
-        
-        for tick in range(header.song_length + 1):
+        sequence = []
+
+        for tick in range(length):
             for note_id in range(last_note_id, len(notes)):
                 last_note_id = note_id
                 note = notes[note_id]
@@ -111,9 +89,9 @@ def parse(nbs_file: str) -> Union[list, str]:
                     
                 else:
                     if type(sequence[-1]) is int:
-                        sequence[-1] += TEMPO[header.tempo]
+                        sequence[-1] += tempo #TEMPO[header.tempo]
                     else:
-                        sequence.append(TEMPO[header.tempo])
+                        sequence.append(tempo) #TEMPO[header.tempo])
                     break
         
         return sequence
@@ -151,6 +129,7 @@ def set_pitch_octave(key, pitch):
     
     return (pitch, octave_range)
 
+
 def set_volume(n_vel, l_vol, n_pan, l_pan):
     if l_pan == 0:
         lower_bound = -100
@@ -182,7 +161,8 @@ def set_volume(n_vel, l_vol, n_pan, l_pan):
     if vol_r % 1 == 0.0: vol_r = int(vol_r)
 
     return (vol_l, vol_r)
-    
+
+
 def sepparate_data(raw_data: list[list, int]) -> list[list]:
     final = []
     data = []
@@ -210,6 +190,7 @@ def sepparate_data(raw_data: list[list, int]) -> list[list]:
     
     return final
 
+
 def dump_data(sepparated_data):
     i = 0
     for element in sepparated_data:
@@ -223,13 +204,15 @@ def dump_data(sepparated_data):
     with open(file[:-4]+'_0.json', 'w') as json_result:
         json_result.write(data)
 
-#file = 'Queen — Bohemian Rhapsody.nbs'
-file = 'show.nbs'
-#file = 'intro.nbs'
-data = parse(file)
-data = sepparate_data(data)
-dump_data(data)
 
+# file = 'Queen — Bohemian Rhapsody.nbs'
+# file = 'show.nbs'
+# file = 'intro.nbs'
+# data = parse(file)
+# data = sepparate_data(data)
+# dump_data(data)
 
+with open('test.nbs', "rb") as fileobj:
+    print(get_metadata(fileobj))
 
 

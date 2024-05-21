@@ -3,6 +3,7 @@ from typing import Any, Optional, Union
 
 from flask import Flask
 
+from pywebio.platform.flask import webio_view
 from pywebio.input import input, FLOAT
 from pywebio.output import put_text
 
