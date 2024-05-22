@@ -1,6 +1,7 @@
 *.nbs
 *.json
 github_token.py
+test.py
 /nbs/
 *.pem
 /__pycache__/
