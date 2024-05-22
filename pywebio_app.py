@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Any, Optional, Union
 
-from pywebio import start_server
+from pywebio import start_server, config
 from pywebio.input import *
 from pywebio.output import *
 from pywebio.session import set_env, info as session_info
@@ -56,6 +56,7 @@ def request():
     print(URL, headers, new_content)
     
 
+@config(theme='dark')
 def main():
     put_text(TOKEN)
     put_text('hello')
