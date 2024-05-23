@@ -4,9 +4,12 @@ from typing import Any, Optional, Union
 from pywebio import start_server, config
 from pywebio.input import *
 from pywebio.output import *
+from pywebio.pin import *
 from pywebio.session import set_env, info as session_info
 
 from threading import Thread
+
+from os import pardir, path, pathsep
 
 import requests
 import json
@@ -60,49 +63,65 @@ response: Optional[requests.Request] = None
 #     print(URL, headers, new_content) 
 
 @config(theme='dark')
-async def main():
-    # Устанавливаем заголовок вкладки
-    set_env(title="Название вкладки")
-
-    put_markdown(
-        '''
-        # Загрузка мелодий в JustNBS плеер
-        Ссылка на ресурс пак с расширением октав
-        Требования к .nbs файлу:
-        • версия OpenNBS -- 3.10.0
-        • использовать только стандартные звуки
-        Короткий гайд по созданию мелодии:
-        • скачайте и установите Open Note Block Studio 3.10.0
-        '''
-    )
+def main():
+    set_env(title="JustNBS")
     
-    async def handle_file_upload(popup_id):
-        uploaded_file = await file_upload(
-            "Загрузите файл .nbs", accept=".nbs", popup=popup_id
+    put_scope('image', position=0)
+    put_scope('title', position=1)
+    put_scope('description', position=2)
+    put_scope('inputs', position=3)
+    put_scope('latest_tracks', position=4)
+
+    render_title()
+    render_file_input()
+    render_latests_table()
+
+def render_image():
+    with use_scope('title', clear=True):
+        put_image()
+
+def render_title():
+    with use_scope('title', clear=True):
+        put_markdown(
+            '''
+            # Загрузка мелодий в JustNBS плеер
+            Ссылка на ресурс пак с расширением октав
+            Требования к .nbs файлу:
+            • версия OpenNBS -- 3.10.0
+            • использовать только стандартные звуки
+            Короткий гайд по созданию мелодии:
+            • скачайте и установите Open Note Block Studio 3.10.0
+            '''
         )
-        if uploaded_file:
-            file_size = len(uploaded_file['content'])
-            put_text(f"Размер загруженного файла: {file_size} байт", popup=popup_id)
-            await asyncio.sleep(1)  # Пауза для демонстрации результата
-            popup('popup_id').close()  # Закрываем popup после загрузки файла
 
-    # Функция для отображения popup с формой загрузки файла
-    async def show_upload_popup():
-        async with popup('popup_id', title="Загрузка файла") as p:
-            await handle_file_upload(p.popup_id)
+def render_file_input():
+    with use_scope('inputs', clear=True):
+        put_file_upload(
+            name='uploaded_nbs', accept=".nbs",
+            max_size='250K', placeholder='Выбери NBS файл для загрузки',
+        )
+        put_buttons(['Загрузить'], lambda _: upload_data(pin.uploaded_nbs))
 
-    # Создаем кнопку для открытия popup с формой загрузки файла
-    put_buttons(['Загрузить файл'], [show_upload_popup])
+def render_lyrics_input():
+    with use_scope('inputs', clear=True):
+        put_file_upload(
+            name='uploaded_txt', accept=".txt",
+            max_size='50K', placeholder='Загрузите текст песни',
+        )
+        put_buttons(['Загрузить'], lambda _: upload_data(pin.uploaded_txt))
 
-    # Добавляем таблицу внизу страницы
-    table_data = [
-        ['Столбец 1', 'Столбец 2', 'Столбец 3', 'Столбец 4', 'Столбец 5'],
-        ['Данные 1', 'Данные 2', 'Данные 3', 'Данные 4', 'Данные 5'],
-        ['Данные 1', 'Данные 2', 'Данные 3', 'Данные 4', 'Данные 5'],
-        ['Данные 1', 'Данные 2', 'Данные 3', 'Данные 4', 'Данные 5'],
-        ['Данные 1', 'Данные 2', 'Данные 3', 'Данные 4', 'Данные 5'],
-    ]
-    put_table(table_data)
+def render_latests_table():
+    with use_scope('latest_tracks', clear=True):
+        table_data = [
+            ['Столбец 1', 'Столбец 2', 'Столбец 3', 'Столбец 4', 'Столбец 5'],  
+            ['Данные 1', 'Данные 2', 'Данные 3', 'Данные 4', 'Данные 5'],
+        ]
+        put_table(table_data)
+
+def upload_data(uploaded_nbs):
+    # popup(title='Размер файла', content=str(len(fileobj['content']),),)
+    render_lyrics_input()
+    
 
     # put_buttons(
     #     ['Обновить Gist'], 
@@ -126,4 +145,4 @@ async def main():
 
 
 if __name__ == '__main__':
-    start_server(main, port=8000)
+    start_server(main, host='127.0.0.1', port=8000)
