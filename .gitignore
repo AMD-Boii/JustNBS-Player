@@ -3,7 +3,7 @@
 github_token.py
 /nbs/
 *.pem
-/__pycache__/
+*__pycache__/
 GPT
 *.psd
 test.py

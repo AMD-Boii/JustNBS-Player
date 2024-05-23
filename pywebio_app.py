@@ -9,7 +9,7 @@ from pywebio.session import set_env, info as session_info, run_js
 
 from threading import Thread
 
-from os import environ
+from os import environ, path
 
 import requests
 import json
@@ -81,7 +81,7 @@ def main():
     put_scope('latest_tracks', position=4)
 
     with use_scope('image', clear=True):
-        put_image(open('logo.png', 'rb').read())
+        put_image(open(path.join('resources', 'logo.png'), 'rb').read())
 
     if PLAYLIST_GIST is None:
         put_markdown('# ОТСУТСТВУЕТ PLAYLIST_GIST В ПЕРЕМЕННЫХ СРЕДЫ')
@@ -97,19 +97,31 @@ def index_page():
             case 'upload_nbs':
                 upload_page()
             case 'module':
+                run_js(
+                    """
+                    navigator.clipboard.writeText("Hello, World!").then(function() {
+                    }, function(err) {
+                        console.error('Could not copy text: ', err);
+                    });
+                    """
+                )
                 toast(
-                    content='Временно недоступно!',
+                    content='Ссылка скопирована в буфер обмена!',
                     duration=3, color='info',
                 )
             case 'onbs_download':
                 run_js(
-                    'window.open("' +
-                    'https://github.com/OpenNBS/OpenNoteBlockStudio/releases")'
+                    """
+                    window.open(
+                        "https://github.com/OpenNBS/OpenNoteBlockStudio/releases"
+                    )
+                    """
                 )
             case 'github_repo':
                 run_js(
-                    'window.open("' +
-                    'https://github.com/AMD-Boii/JustNBS-Player")'
+                    """
+                    window.open("https://github.com/AMD-Boii/JustNBS-Player")
+                    """
                 )
             case 'onbs_advice':
                 advice_page()
