@@ -5,23 +5,31 @@ from pywebio import start_server, config
 from pywebio.input import *
 from pywebio.output import *
 from pywebio.pin import *
-from pywebio.session import set_env, info as session_info
+from pywebio.session import set_env, info as session_info, run_js
 
 from threading import Thread
+
+from os import environ
 
 import requests
 import json
 import asyncio
-import os
+import pathlib
 
 #from nbs_parser import get_metadata, parse, separate_data
 
-import github_token
-TOKEN = github_token.get()
-del github_token
 
-PLAYLIST_GIST = 'f8c7e17f23454fbf34c7ca0be7fe6d27'
-URL = f'https://api.github.com/gists/{PLAYLIST_GIST}'
+try:
+    PLAYLIST_GIST = environ['PLAYLIST_GIST']
+    try:
+        GITHUB_TOKEN = environ['GITHUB_TOKEN']
+        URL = f'https://api.github.com/gists/{PLAYLIST_GIST}'
+    except:
+        GITHUB_TOKEN = None
+        URL = None
+except:
+    PLAYLIST_GIST = None
+
 
 response: Optional[requests.Request] = None
 
@@ -64,7 +72,7 @@ response: Optional[requests.Request] = None
 
 @config(theme='dark')
 def main():
-    set_env(title='JustNBS Database')
+    set_env(title='JustNBS Player DB')
     
     put_scope('image', position=0)
     put_scope('title', position=1)
@@ -72,20 +80,135 @@ def main():
     put_scope('inputs', position=3)
     put_scope('latest_tracks', position=4)
 
-    show_image()
-    show_title()
-    show_description()
-    show_file_input()
-    show_latests_table()
+    with use_scope('image', clear=True):
+        put_image(open('logo.png', 'rb').read())
 
-def show_image():
-    with use_scope('title', clear=True):
-        logo_path = os.path.join("data", "logo.jpg")
-        put_image(open(logo_path, "rb").read())
+    if PLAYLIST_GIST is None:
+        put_markdown('# ОТСУТСТВУЕТ PLAYLIST_GIST В ПЕРЕМЕННЫХ СРЕДЫ')
+    else:
+        if GITHUB_TOKEN is None:
+            put_markdown('# ОТСУТСТВУЕТ GITHUB_TOKEN В ПЕРЕМЕННЫХ СРЕДЫ')
+        else:
+            index_page()
 
-def show_title():
+def index_page():
+    def buttons_action(value):
+        match value:
+            case 'upload_nbs':
+                upload_page()
+            case 'onbs_download':
+                run_js(
+                    'window.open("' +
+                    'https://github.com/OpenNBS/OpenNoteBlockStudio/releases")'
+                )
+            case 'github_repo':
+                run_js(
+                    'window.open("' +
+                    'https://github.com/AMD-Boii/JustNBS-Player")'
+                )
+            case 'onbs_advice':
+                advice_page()
+            case _:
+                toast(
+                    content='ОШИБКА ОБРАБОТЧИКА НАЖАТИЙ INDEX_PAGE',
+                    duration=3, color='red',
+                )
+                index_page()
+    
     with use_scope('title', clear=True):
-        put_markdown('# Загрузка мелодий в JustNBS плеер')
+        put_markdown('# Добро пожаловать')
+    
+    with use_scope('description', clear=True):
+        put_markdown(
+            '''
+            Ссылка на ресурс пак с расширением октав
+            Требования к .nbs файлу:
+            • версия OpenNBS -- 3.10.0
+            • использовать только стандартные звуки
+            Короткий гайд по созданию мелодии:
+            • скачайте и установите Open Note Block Studio 3.10.0
+            '''
+        )
+    
+    with use_scope('inputs', clear=True):
+        put_buttons(
+            [  
+                dict(label=i[0], value=i[1], color=i[2])  
+                for i in [
+                    ['Опубликовать NBS трек', 'upload_nbs', 'primary'],
+                    ['Скачать OpenNBS', 'onbs_download', 'danger'],
+                    ['GitHub репозиторий', 'github_repo', 'info']
+                ]  
+            ],
+            onclick=lambda value: buttons_action(value)
+        )
+
+def advice_page():
+    def buttons_action(value):
+        match value:
+            case 'upload_nbs':
+                upload_page() 
+
+    with use_scope('title', clear=True):
+        put_markdown('# Советы по работе с OpenNBS')
+    
+    with use_scope('description', clear=True):
+        put_markdown(
+            '''
+            Короткий гайд по созданию мелодии:
+            • скачайте и установите Open Note Block Studio 3.10.0
+            '''
+        )
+    
+    with use_scope('inputs', clear=True):
+        put_buttons(
+            [  
+                dict(label=i[0], value=i[1], color=i[2])  
+                for i in [
+                    ['На главную', 'index', 'primary'],
+                    ['Скачать OpenNBS', 'onbs_download', 'danger'],
+                    ['GitHub репозиторий', 'github_repo', 'info']
+                ]  
+            ],
+            onclick=lambda value: buttons_action(value)
+        )
+        
+    
+def upload_page():
+    def buttons_action(value):
+        match value:
+            case 'upload_nbs':
+                upload_page()
+            case _:
+                toast(
+                    content='ОШИБКА ОБРАБОТЧИКА НАЖАТИЙ ADVICE_PAGE',
+                    duration=3, color='red',
+                )
+                index_page()
+
+    with use_scope('title', clear=True):
+        put_markdown('# Выберите файл для загрузки')
+    
+    with use_scope('description', clear=True):
+        put_markdown('правила загрузки')
+    
+    with use_scope('inputs', clear=True):
+        put_file_upload(
+            name='uploaded_nbs', accept=".nbs",
+            max_size='250K', placeholder='Выбери NBS файл для загрузки',
+        )
+        put_buttons(
+            [  
+                dict(label=i[0], value=i[1], color=i[2])  
+                for i in [
+                    ['Загрузить', True, 'primary'],
+                    ['Отмена', False, 'danger']
+                ]  
+            ],
+            onclick=lambda val: upload_page() if val else index_page()
+        ) 
+    
+    
     
 def show_description():
     with use_scope('description', clear=True):
