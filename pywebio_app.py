@@ -8,8 +8,8 @@ from pywebio.pin import *
 from pywebio.session import set_env, info as session_info, run_js
 
 from threading import Thread
-
 from os import environ, path
+from io import BytesIO
 
 import requests
 import json
@@ -209,9 +209,18 @@ def upload_page():
                         duration=3, color='info',
                     )
                 else:
-                    meta = get_metadata(pin.uploaded_nbs)
+                    meta = get_metadata(BytesIO(pin.uploaded_nbs['content']))
+                    if isinstance(meta, str):
+                        toast(
+                            content=str(meta),
+                            duration=3, color='red',
+                        )
+                    else:
+                        file_info_page(meta)
+
             case 'index':
                 index_page()
+
             case _:
                 toast(
                     content='ОШИБКА ОБРАБОТЧИКА НАЖАТИЙ UPLOAD_PAGE',
@@ -241,7 +250,7 @@ def upload_page():
             onclick=lambda value: buttons_action(value)
         )
 
-def file_info_page():
+def file_info_page(meta):
     with use_scope('title', clear=True):
         put_markdown('# Подготовка к публикации')
     

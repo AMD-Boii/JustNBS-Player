@@ -1,6 +1,8 @@
 from __future__ import annotations
 from typing import Optional, Union
 
+from io import BytesIO
+
 import pynbs
 import json
 import datetime
@@ -17,7 +19,7 @@ TEMPO = (
 )
 
 
-def get_metadata(nbs_file: str = '') -> Union[list, str]:
+def get_metadata(nbs_file: BytesIO) -> Union[tuple, str]:
     '''
     Reads metadata from the NBS file, checks conditions\n
     and returns header and NBS data for further parsing\n
@@ -42,10 +44,10 @@ def get_metadata(nbs_file: str = '') -> Union[list, str]:
         notes = nbs_data.notes
         layers = nbs_data.layers
 
-        return [header, notes, layers]
+        return header, notes, layers
     
     except AssertionError as assertion:
-        return assertion
+        return assertion.__str__()
 
 def parse(length: int,
           tempo: int,
