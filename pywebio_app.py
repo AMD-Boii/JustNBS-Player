@@ -9,16 +9,16 @@ from pywebio.session import set_env, info as session_info
 
 from threading import Thread
 
-from os import pardir, path, pathsep
-
 import requests
 import json
 import asyncio
+import os
 
 #from nbs_parser import get_metadata, parse, separate_data
 
 import github_token
 TOKEN = github_token.get()
+del github_token
 
 PLAYLIST_GIST = 'f8c7e17f23454fbf34c7ca0be7fe6d27'
 URL = f'https://api.github.com/gists/{PLAYLIST_GIST}'
@@ -64,7 +64,7 @@ response: Optional[requests.Request] = None
 
 @config(theme='dark')
 def main():
-    set_env(title="JustNBS")
+    set_env(title='JustNBS Database')
     
     put_scope('image', position=0)
     put_scope('title', position=1)
@@ -72,19 +72,25 @@ def main():
     put_scope('inputs', position=3)
     put_scope('latest_tracks', position=4)
 
-    render_title()
-    render_file_input()
-    render_latests_table()
+    show_image()
+    show_title()
+    show_description()
+    show_file_input()
+    show_latests_table()
 
-def render_image():
+def show_image():
     with use_scope('title', clear=True):
-        put_image()
+        logo_path = os.path.join("data", "logo.jpg")
+        put_image(open(logo_path, "rb").read())
 
-def render_title():
+def show_title():
     with use_scope('title', clear=True):
+        put_markdown('# Загрузка мелодий в JustNBS плеер')
+    
+def show_description():
+    with use_scope('description', clear=True):
         put_markdown(
             '''
-            # Загрузка мелодий в JustNBS плеер
             Ссылка на ресурс пак с расширением октав
             Требования к .nbs файлу:
             • версия OpenNBS -- 3.10.0
@@ -94,7 +100,7 @@ def render_title():
             '''
         )
 
-def render_file_input():
+def show_file_input():
     with use_scope('inputs', clear=True):
         put_file_upload(
             name='uploaded_nbs', accept=".nbs",
@@ -102,7 +108,8 @@ def render_file_input():
         )
         put_buttons(['Загрузить'], lambda _: upload_data(pin.uploaded_nbs))
 
-def render_lyrics_input():
+# TODO: на потом
+def show_lyrics_input():
     with use_scope('inputs', clear=True):
         put_file_upload(
             name='uploaded_txt', accept=".txt",
@@ -110,17 +117,33 @@ def render_lyrics_input():
         )
         put_buttons(['Загрузить'], lambda _: upload_data(pin.uploaded_txt))
 
-def render_latests_table():
+def show_latests_table():
     with use_scope('latest_tracks', clear=True):
-        table_data = [
-            ['Столбец 1', 'Столбец 2', 'Столбец 3', 'Столбец 4', 'Столбец 5'],  
-            ['Данные 1', 'Данные 2', 'Данные 3', 'Данные 4', 'Данные 5'],
-        ]
+        data = get_latest_tracks()
+        table_data = []
+        for author in data:
+            for track in data[author]:
+                meta = data[author][track]
+                table_data.append([author, meta['duration'], meta['file_amount'],],)
+        
         put_table(table_data)
+
+def get_latest_tracks():
+    response = requests.get(url='https://gist.github.com/AMD-Boii/f8c7e17f23454fbf34c7ca0be7fe6d27/raw/ce4675c5463ced399e779790f51b5bda5169ecff/latest_tracks.json')
+    return response.json()
+
+def backup_latest_tracks():
+    pass
+
+def get_full_playlist():
+    pass
+
+def backup_full_playlist():
+    pass
 
 def upload_data(uploaded_nbs):
     # popup(title='Размер файла', content=str(len(fileobj['content']),),)
-    render_lyrics_input()
+    show_lyrics_input()
     
 
     # put_buttons(
