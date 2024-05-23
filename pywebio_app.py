@@ -16,7 +16,7 @@ import json
 import asyncio
 import pathlib
 
-#from nbs_parser import get_metadata, parse, separate_data
+from nbs_parser import get_metadata, parse, separate_data
 
 
 try:
@@ -96,6 +96,11 @@ def index_page():
         match value:
             case 'upload_nbs':
                 upload_page()
+            case 'module':
+                toast(
+                    content='Временно недоступно!',
+                    duration=3, color='info',
+                )
             case 'onbs_download':
                 run_js(
                     'window.open("' +
@@ -136,8 +141,10 @@ def index_page():
                 dict(label=i[0], value=i[1], color=i[2])  
                 for i in [
                     ['Опубликовать NBS трек', 'upload_nbs', 'primary'],
+                    ['Ссылка на модуль', 'module', 'info'],
                     ['Скачать OpenNBS', 'onbs_download', 'danger'],
-                    ['GitHub репозиторий', 'github_repo', 'info']
+                    ['GitHub репозиторий', 'github_repo', 'info'],
+                    ['Советы по OpenNBS', 'onbs_advice', 'info']
                 ]  
             ],
             onclick=lambda value: buttons_action(value)
@@ -146,8 +153,14 @@ def index_page():
 def advice_page():
     def buttons_action(value):
         match value:
-            case 'upload_nbs':
-                upload_page() 
+            case 'index':
+                index_page() 
+            case _:
+                toast(
+                    content='ОШИБКА ОБРАБОТЧИКА НАЖАТИЙ ADVICE_PAGE',
+                    duration=3, color='red',
+                )
+                index_page()
 
     with use_scope('title', clear=True):
         put_markdown('# Советы по работе с OpenNBS')
@@ -166,22 +179,30 @@ def advice_page():
                 dict(label=i[0], value=i[1], color=i[2])  
                 for i in [
                     ['На главную', 'index', 'primary'],
+                    ['Опубликовать NBS трек', 'upload_nbs', 'primary'],
                     ['Скачать OpenNBS', 'onbs_download', 'danger'],
-                    ['GitHub репозиторий', 'github_repo', 'info']
+                    ['GitHub репозиторий', 'github_repo', 'info'],
                 ]  
             ],
             onclick=lambda value: buttons_action(value)
         )
-        
     
 def upload_page():
     def buttons_action(value):
         match value:
             case 'upload_nbs':
-                upload_page()
+                if pin.uploaded_nbs is None:
+                    toast(
+                        content='Для начала, выберите файл',
+                        duration=3, color='info',
+                    )
+                else:
+                    meta = get_metadata(pin.uploaded_nbs)
+            case 'index':
+                index_page()
             case _:
                 toast(
-                    content='ОШИБКА ОБРАБОТЧИКА НАЖАТИЙ ADVICE_PAGE',
+                    content='ОШИБКА ОБРАБОТЧИКА НАЖАТИЙ UPLOAD_PAGE',
                     duration=3, color='red',
                 )
                 index_page()
@@ -201,35 +222,23 @@ def upload_page():
             [  
                 dict(label=i[0], value=i[1], color=i[2])  
                 for i in [
-                    ['Загрузить', True, 'primary'],
-                    ['Отмена', False, 'danger']
+                    ['Загрузить', 'upload_nbs', 'primary'],
+                    ['Отмена', 'index', 'danger']
                 ]  
             ],
-            onclick=lambda val: upload_page() if val else index_page()
-        ) 
-    
-    
-    
-def show_description():
-    with use_scope('description', clear=True):
-        put_markdown(
-            '''
-            Ссылка на ресурс пак с расширением октав
-            Требования к .nbs файлу:
-            • версия OpenNBS -- 3.10.0
-            • использовать только стандартные звуки
-            Короткий гайд по созданию мелодии:
-            • скачайте и установите Open Note Block Studio 3.10.0
-            '''
+            onclick=lambda value: buttons_action(value)
         )
 
-def show_file_input():
+def file_info_page():
+    with use_scope('title', clear=True):
+        put_markdown('# Подготовка к публикации')
+    
+    with use_scope('description', clear=True):
+        put_markdown('правила загрузки')
+
     with use_scope('inputs', clear=True):
-        put_file_upload(
-            name='uploaded_nbs', accept=".nbs",
-            max_size='250K', placeholder='Выбери NBS файл для загрузки',
-        )
-        put_buttons(['Загрузить'], lambda _: upload_data(pin.uploaded_nbs))
+        pass
+
 
 # TODO: на потом
 def show_lyrics_input():
