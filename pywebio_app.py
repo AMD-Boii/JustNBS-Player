@@ -68,25 +68,24 @@ response: Optional[requests.Request] = None
 
 @config(theme='dark')
 def main():
-    global translation
+    global translate
 
     if session_info.user_language == 'ru-RU':
-        import translation.ru_RU as translation
+        import translation.ru_RU as translate
         #import translation.en_EN as lang
     else:
         #import translation.en_EN as lang
-        import translation.ru_RU as translation
-    
+        import translation.ru_RU as translate
 
-    lang = translation.Main
+    lang = translate.Main
 
-    set_env(title='JustNBS Player DataBase')
+    set_env(title='JustNBS Player DataBase',)
     
-    put_scope('image', position=0)
-    put_scope('title', position=1)
-    put_scope('content', position=2)
-    put_scope('inputs', position=3)
-    put_scope('latest_tracks', position=4)
+    put_scope('image', position=0,)
+    put_scope('title', position=1,)
+    put_scope('content', position=2,)
+    put_scope('inputs', position=3,)
+    put_scope('latest_tracks', position=4,)
 
     if PLAYLIST_GIST is None:
         put_markdown(lang.NO_PLAYLIST_GIST)
@@ -97,17 +96,16 @@ def main():
             put_markdown(lang.WRONG_GITHUB_TOKEN_FORMAT)
         else:
             try:
-                with use_scope('image', clear=True):
+                with use_scope('image', clear=True,):
                     put_image(
-                        open(path.join('resources', lang.LOGO), 'rb').read()
-                    )
+                        open(path.join('resources', lang.LOGO,), 'rb').read(),)
             except:
-                with use_scope('image', clear=True):
+                with use_scope('image', clear=True,):
                     put_markdown('# NO_IMAGE')
             index_page()
 
 def index_page():
-    lang = translation.IndexPage
+    lang = translate.IndexPage
 
     def buttons_action(value):
         match value:
@@ -123,8 +121,7 @@ def index_page():
                 """)
                 toast(
                     content=lang.LINK_COPIED,
-                    duration=3, color='info',
-                )
+                    duration=3, color='info',)
             case 'onbs_download':
                 run_js(r"""
                 window.open(
@@ -141,7 +138,8 @@ def index_page():
         put_markdown(lang.WELCOME)
     
     with use_scope('content', clear=True):
-        put_tabs([
+        put_tabs(
+            tabs=[
             {
                 'title': lang.ABOUT,
                 'content': [
@@ -150,11 +148,9 @@ def index_page():
                         [  
                             dict(label=i[0], value=i[1], color=i[2])  
                             for i in [
-                                ['GitHub репозиторий', 'github_repo', 'info'],
-                            ]  
+                                [lang.B_GHUB_REPO, 'github_repo', 'info'],]  
                         ],
-                        onclick=lambda value: buttons_action(value)
-                    ),
+                        onclick=lambda value: buttons_action(value),),
                 ],
             },
             {
@@ -165,18 +161,15 @@ def index_page():
                         [  
                             dict(label=i[0], value=i[1], color=i[2])  
                             for i in [
-                                ['Ресурспак', 'res_pack', 'info'],
-                            ]  
+                                [lang.B_RES_LINK, 'res_pack', 'info'],]  
                         ],
-                        onclick=lambda value: buttons_action(value)
-                    ),
+                        onclick=lambda value: buttons_action(value),),
                 ],
             },
             {
                 'title': lang.REQS,
                 'content': [
-                    put_markdown(lang.REQS_CONTENT)
-                ],
+                    put_markdown(lang.REQS_CONTENT),],
             },
             {
                 'title': lang.RECENT_TRACKS,
@@ -186,11 +179,9 @@ def index_page():
                         [  
                             dict(label=i[0], value=i[1], color=i[2])  
                             for i in [
-                                ['Обновить', 'update_recent', 'info'],
-                            ]  
+                                [lang.B_REFRESH, 'refresh_recent', 'info'],]  
                         ],
-                        onclick=lambda value: buttons_action(value)
-                    ),
+                        onclick=lambda value: buttons_action(value),),
                 ],
             },
             {
@@ -201,65 +192,33 @@ def index_page():
                         [  
                             dict(label=i[0], value=i[1], color=i[2])  
                             for i in [
-                                ['Скачать OpenNBS', 'onbs_download', 'danger'],
-                            ]  
+                                [lang.B_DOWN_ONBS, 'onbs_download', 'danger'],]  
                         ],
-                        onclick=lambda value: buttons_action(value)
-                    )
+                        onclick=lambda value: buttons_action(value),),
                 ],
-            },
-        ],
-        scope='content')
+            },],
+        )
     
-    with use_scope('inputs', clear=True):
+    with use_scope('inputs', clear=True,):
         put_buttons(
             [  
                 dict(label=i[0], value=i[1], color=i[2])  
                 for i in [
-                    ['Опубликовать трек', 'upload_page', 'primary'],
-                    ['Поиск треков', 'search_page', 'primary'],
-                ]  
+                    [lang.B_UPLOAD, 'upload_page', 'primary'],
+                    [lang.B_SEARCH, 'search_page', 'primary'],]  
             ],
-            onclick=lambda value: buttons_action(value)
-        )
-
-# def advice_page():
-#     def buttons_action(value):
-#         match value:
-#             case 'index_page':
-#                 index_page() 
-
-#     with use_scope('title', clear=True):
-#         put_markdown('# Советы по работе с OpenNBS')
-    
-#     with use_scope('content', clear=True):
-#         put_markdown(
-#             '''
-#             Короткий гайд по созданию мелодии:
-#             • скачайте и установите Open Note Block Studio 3.10.0
-#             '''
-#         )
-    
-#     with use_scope('inputs', clear=True):
-#         put_buttons(
-#             [  
-#                 dict(label=i[0], value=i[1], color=i[2])  
-#                 for i in [
-#                     ['На главную', 'index_page', 'primary'],
-#                 ]  
-#             ],
-#             onclick=lambda value: buttons_action(value),
-#         )
+            onclick=lambda value: buttons_action(value),)
     
 def upload_page():
+    lang = translate.UploadPage
+
     def buttons_action(value):
         match value:
             case 'upload_nbs':
                 if pin.uploaded_nbs is None:
                     toast(
                         content='Для начала, выберите файл',
-                        duration=3, color='info',
-                    )
+                        duration=3, color='info',)
                 else:
                     nbs_data = get_metadata(BytesIO(pin.uploaded_nbs['content']))
                     if isinstance(nbs_data, str):
@@ -274,62 +233,70 @@ def upload_page():
             case 'index_page':
                 index_page()
 
-    with use_scope('title', clear=True):
-        put_markdown('# Выберите файл для загрузки')
+    with use_scope('title', clear=True,):
+        put_markdown(lang.CHOOSE_FILE)
     
-    with use_scope('content', clear=True):
-        put_markdown('правила загрузки')
+    with use_scope('content', clear=True,):
+        put_markdown(lang.UPLOAD_RULES)
     
-    with use_scope('inputs', clear=True):
+    with use_scope('inputs', clear=True,):
         put_file_upload(
-            name='uploaded_nbs', accept=".nbs",
-            max_size='250K', placeholder='Выбери NBS файл для загрузки',
-            help_text='hello'
-        )
+            name='uploaded_nbs', accept='.nbs',
+            max_size='250K', placeholder=lang.PLACEHOLDER,
+            help_text=lang.HELP_TEXT,)
         put_buttons(
             [  
                 dict(label=i[0], value=i[1], color=i[2])  
                 for i in [
-                    ['Загрузить', 'upload_nbs', 'primary'],
-                    ['Отмена', 'index_page', 'danger']
-                ]  
+                    [lang.UPLOAD, 'upload_nbs', 'primary'],
+                    [lang.CANCEL, 'index_page', 'danger'],]  
             ],
-            onclick=lambda value: buttons_action(value)
-        )
+            onclick=lambda value: buttons_action(value),)
 
-def edit_tempo_page(nbs_data):    
+def edit_tempo_page(nbs_data):
+    lang = translate.EditTempoPage
+
     def buttons_action(value):
         match value:
             case 'edit_meta_page':
+                nbs_data[0].tempo = pin.new_tempo
                 edit_meta_page(nbs_data)
             case 'upload_page':
                 upload_page()
     
     with use_scope('title', clear=True):
-        put_markdown('# NBS имеет неподдерживаемый темп!')
+        put_markdown(lang.UNSUPPORTED_TEMPO)
     
     with use_scope('content', clear=True):
-        put_markdown('Не беда! Вы можете изменить темп прямо здесь!')
-        put_markdown('Но лучше вернуться в OpenNBS и тщательно его отредактировать...')
-        put_markdown('Выберите максимально близкий к исходному темп.')
+        put_markdown(lang.ITS_OK)
     
     with use_scope('inputs', clear=True):
         put_select(
-            label=f'Выберите поддерживаемый темп (исходный темп {nbs_data[0].tempo} t/s)',
+            label=lang.PICK_TEMPO.replace('TEMPO', str(nbs_data[0].tempo),),
             name='new_tempo',
             options=[  
                 dict(label=i[0], value=i[1], selected=i[2])  
                 for i in [
-                    ['20.0 t/s', 20.0, True],
+                    ['20.0 t/s', 20.0, None],
                     ['10.0 t/s', 10.0, None],
                     ['6.67 t/s', 6.67, None],
-                    ['5.0 t/s', 5.0, None],
+                    ['5.0 t/s', 5.0, True],
                     ['4.0 t/s', 4.0, None],
                     ['3.33 t/s', 3.33, None],
                     ['2.86 t/s', 2.86, None],
                     ['2.5 t/s', 2.5, None],
                     ['2.22 t/s', 2.22, None],
                     ['2.0 t/s', 2.0, None],
+                    ['1.82 t/s', 1.82, False],
+                    ['1.67 t/s', 1.67, None],
+                    ['1.54 t/s', 1.54, None],
+                    ['1.43 t/s', 1.43, None],
+                    ['1.33 t/s', 1.33, None],
+                    ['1.25 t/s', 1.25, None],
+                    ['1.18 t/s', 1.18, None],
+                    ['1.11 t/s', 1.11, None],
+                    ['1.05 t/s', 1.05, None],
+                    ['1.0 t/s', 1.0, None],
                 ]  
             ],
         )
@@ -337,8 +304,8 @@ def edit_tempo_page(nbs_data):
             [  
                 dict(label=i[0], value=i[1], color=i[2])
                 for i in [
-                    ['Подтвердить', 'edit_meta_page', 'danger'],
-                    ['Отмена', 'upload_page', 'danger'],
+                    [lang.ACCEPT, 'edit_meta_page', 'danger'],
+                    [lang.CANCEL, 'upload_page', 'danger'],
                 ]  
             ],
             onclick=lambda value: buttons_action(value)
@@ -361,7 +328,9 @@ def edit_meta_page(nbs_data):
         put_markdown('Подтвердите или измените метаданные NBS файла')
 
     with use_scope('inputs', clear=True):
-        put_input('author', label='Автор', value=nbs_data[0].original_author)
+        put_input(
+            'author', label='Автор', value=nbs_data[0].original_author,
+            help_text='Максимум 16 символов')
         put_markdown('Использовать имя автора из:')
         put_buttons(
             [  
@@ -371,11 +340,29 @@ def edit_meta_page(nbs_data):
                     ['Original song author', 'use_origin_author', 'danger']
                 ]  
             ],
-            onclick=lambda value: buttons_action(value)
-        )
-        
-        put_input('song_name', label='Название', value=nbs_data[0].song_name)
-        
+            onclick=lambda value: buttons_action(value),)
+        put_input(
+            'song_name', label='Название', value=nbs_data[0].song_name,
+            help_text='Максимум 32 символа')
+        if nbs_data[0].loop:
+            put_markdown("""
+                Было обнаружено, что трек использует лупинг (повторы).
+                
+            """)
+            put_radio(
+                name='use_loop',
+                options=[
+                    {
+                        "label": 'Использовать лупинг',
+                        "value": True,
+                        "selected": True,
+                    },
+                    {
+                        "label": 'Проигрывать единожды',
+                        "value": False,
+                    },
+                ], 
+                inline=True,)
         put_buttons(
             [  
                 dict(label=i[0], value=i[1], color=i[2])  
