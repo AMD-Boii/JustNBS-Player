@@ -18,6 +18,13 @@ import asyncio
 
 from nbs_parser import TEMPO, get_metadata, parse, separate_data
 
+if session_info.user_language == 'ru-RU':
+    import translation.ru_RU as lang
+    #import translation.en_EN as lang
+else:
+    #import translation.en_EN as lang
+    import translation.ru_RU as lang
+
 
 try:
     PLAYLIST_GIST = environ['PLAYLIST_GIST']
@@ -75,22 +82,22 @@ def main():
     
     put_scope('image', position=0)
     put_scope('title', position=1)
-    put_scope('description', position=2)
+    put_scope('content', position=2)
     put_scope('inputs', position=3)
     put_scope('latest_tracks', position=4)
 
     if PLAYLIST_GIST is None:
-        put_markdown('# ОТСУТСТВУЕТ PLAYLIST_GIST В ПЕРЕМЕННЫХ СРЕДЫ')
+        put_markdown(lang.NO_PLAYLIST_GIST)
     else:
         if GITHUB_TOKEN is None:
-            put_markdown('# ОТСУТСТВУЕТ GITHUB_TOKEN В ПЕРЕМЕННЫХ СРЕДЫ')
+            put_markdown(lang.NO_GITHUB_TOKEN)
         elif not GITHUB_TOKEN.startswith('ghp_'):
-            put_markdown('# НЕВЕРНЫЙ ФОРМАТ GITHUB_TOKEN')
+            put_markdown(lang.WRONG_GITHUB_TOKEN_FORMAT)
         else:
             try:
                 with use_scope('image', clear=True):
                     put_image(
-                        open(path.join('resources', 'logo.png'), 'rb').read()
+                        open(path.join('resources', lang.LOGO), 'rb').read()
                     )
             except:
                 with use_scope('image', clear=True):
@@ -112,7 +119,7 @@ def index_page():
                     """
                 )
                 toast(
-                    content='Ссылка скопирована в буфер обмена!',
+                    content=lang.LINK,
                     duration=3, color='info',
                 )
             case 'onbs_download':
@@ -131,17 +138,19 @@ def index_page():
                 )
             case 'advice_page':
                 advice_page()
-            case _:
-                toast(
-                    content='ОШИБКА ОБРАБОТЧИКА НАЖАТИЙ INDEX_PAGE',
-                    duration=3, color='red',
-                )
-                index_page()
     
     with use_scope('title', clear=True):
-        put_markdown('# Добро пожаловать')
+        put_markdown(lang.WELCOME)
     
-    with use_scope('description', clear=True):
+    with use_scope('content', clear=True):
+        put_tabs([
+            {
+                'title': 'О проекте',
+                'content': [
+                    put_markdown(lang.ABOUT)
+                ],
+            }
+        ])
         put_markdown(
             '''
             Ссылка на ресурс пак с расширением октав
@@ -193,7 +202,7 @@ def advice_page():
                     ['На главную', 'index_page', 'primary'],
                 ]  
             ],
-            onclick=lambda value: buttons_action(value)
+            onclick=lambda value: buttons_action(value),
         )
     
 def upload_page():
@@ -216,7 +225,6 @@ def upload_page():
                         edit_tempo_page(nbs_data)
                     else:
                         edit_meta_page(nbs_data)
-
             case 'index_page':
                 index_page()
 
@@ -257,7 +265,6 @@ def edit_tempo_page(nbs_data):
     with use_scope('description', clear=True):
         put_markdown('Не беда! Вы можете изменить темп прямо здесь!')
         put_markdown('Но лучше вернуться в OpenNBS и тщательно его отредактировать...')
-        put_markdown('')
         put_markdown('Выберите максимально близкий к исходному темп.')
     
     with use_scope('inputs', clear=True):
@@ -276,13 +283,13 @@ def edit_tempo_page(nbs_data):
                     ['2.86 t/s', 2.86, None],
                     ['2.5 t/s', 2.5, None],
                     ['2.22 t/s', 2.22, None],
-                    ['10.0 t/s', 10.0, None],
+                    ['2.0 t/s', 2.0, None],
                 ]  
             ],
         )
         put_buttons(
             [  
-                dict(label=i[0], value=i[1], color=i[2])  
+                dict(label=i[0], value=i[1], color=i[2])
                 for i in [
                     ['Подтвердить', 'edit_meta_page', 'danger'],
                     ['Отмена', 'upload_page', 'danger'],
@@ -308,7 +315,6 @@ def edit_meta_page(nbs_data):
         put_markdown('Подтвердите или измените метаданные NBS файла')
 
     with use_scope('inputs', clear=True):
-        
         put_input('author', label='Автор', value=nbs_data[0].original_author)
         put_markdown('Использовать имя автора из:')
         put_buttons(
@@ -407,9 +413,9 @@ def get_full_playlist():
 def backup_full_playlist():
     pass
 
-def upload_data(uploaded_nbs):
-    # popup(title='Размер файла', content=str(len(fileobj['content']),),)
-    show_lyrics_input()
+# def upload_data(uploaded_nbs):
+#     # popup(title='Размер файла', content=str(len(fileobj['content']),),)
+#     show_lyrics_input()
     
 
     # put_buttons(
