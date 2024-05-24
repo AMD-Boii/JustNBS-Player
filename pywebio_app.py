@@ -16,7 +16,7 @@ import requests
 import json
 import asyncio
 
-from nbs_parser import get_metadata, parse, separate_data
+from nbs_parser import TEMPO, get_metadata, parse, separate_data
 
 
 try:
@@ -206,16 +206,18 @@ def upload_page():
                         duration=3, color='info',
                     )
                 else:
-                    meta = get_metadata(BytesIO(pin.uploaded_nbs['content']))
-                    if isinstance(meta, str):
+                    nbs_data = get_metadata(BytesIO(pin.uploaded_nbs['content']))
+                    if isinstance(nbs_data, str):
                         toast(
-                            content=str(meta),
+                            content=str(nbs_data),
                             duration=3, color='red',
                         )
+                    elif not nbs_data[0].tempo in TEMPO:
+                        edit_tempo_page(nbs_data)
                     else:
-                        edit_tempo_page(meta[0])
+                        edit_meta_page(nbs_data)
 
-            case 'index':
+            case 'index_page':
                 index_page()
 
     with use_scope('title', clear=True):
@@ -235,17 +237,17 @@ def upload_page():
                 dict(label=i[0], value=i[1], color=i[2])  
                 for i in [
                     ['Загрузить', 'upload_nbs', 'primary'],
-                    ['Отмена', 'index', 'danger']
+                    ['Отмена', 'index_page', 'danger']
                 ]  
             ],
             onclick=lambda value: buttons_action(value)
         )
 
-def edit_tempo_page(header):
-    def button_action(value):
+def edit_tempo_page(nbs_data):    
+    def buttons_action(value):
         match value:
             case 'edit_meta_page':
-                edit_meta_page()
+                edit_meta_page(nbs_data)
             case 'upload_page':
                 upload_page()
     
@@ -260,32 +262,42 @@ def edit_tempo_page(header):
     
     with use_scope('inputs', clear=True):
         put_select(
-            label='Выберите поддерживаемый темп',
-            name='select',
+            label=f'Выберите поддерживаемый темп (исходный темп {nbs_data[0].tempo} t/s)',
+            name='new_tempo',
             options=[  
                 dict(label=i[0], value=i[1], selected=i[2])  
                 for i in [
-                    ['20.0', 20.0, True],
-                    ['10.0', 10.0, None],
-                    ['6.67', 6.67, None],
-                    ['5.0', 5.0, None],
-                    ['4.0', 4.0, None],
-                    ['3.33', 3.33, None],
-                    ['2.86', 2.86, None],
-                    ['2.5', 2.5, None],
-                    ['2.22', 2.22, None],
-                    ['10.0', 10.0, None],
+                    ['20.0 t/s', 20.0, True],
+                    ['10.0 t/s', 10.0, None],
+                    ['6.67 t/s', 6.67, None],
+                    ['5.0 t/s', 5.0, None],
+                    ['4.0 t/s', 4.0, None],
+                    ['3.33 t/s', 3.33, None],
+                    ['2.86 t/s', 2.86, None],
+                    ['2.5 t/s', 2.5, None],
+                    ['2.22 t/s', 2.22, None],
+                    ['10.0 t/s', 10.0, None],
                 ]  
             ],
         )
+        put_buttons(
+            [  
+                dict(label=i[0], value=i[1], color=i[2])  
+                for i in [
+                    ['Подтвердить', 'edit_meta_page', 'danger'],
+                    ['Отмена', 'upload_page', 'danger'],
+                ]  
+            ],
+            onclick=lambda value: buttons_action(value)
+        )
 
-def edit_meta_page(header):#, nbs_data):
+def edit_meta_page(nbs_data):
     def buttons_action(value):
         match value:
             case 'use_song_author':
-                pin.author = header.song_author
+                pin.author = nbs_data[0].song_author
             case 'use_origin_author':
-                pin.author = header.original_author
+                pin.author = nbs_data[0].original_author
             case 'upload_page':
                 upload_page()
 
@@ -297,7 +309,7 @@ def edit_meta_page(header):#, nbs_data):
 
     with use_scope('inputs', clear=True):
         
-        put_input('author', label='Автор', value=header.original_author)
+        put_input('author', label='Автор', value=nbs_data[0].original_author)
         put_markdown('Использовать имя автора из:')
         put_buttons(
             [  
@@ -310,7 +322,7 @@ def edit_meta_page(header):#, nbs_data):
             onclick=lambda value: buttons_action(value)
         )
         
-        put_input('song_name', label='Название', value=header.song_name)
+        put_input('song_name', label='Название', value=nbs_data[0].song_name)
         
         put_buttons(
             [  
@@ -322,17 +334,54 @@ def edit_meta_page(header):#, nbs_data):
             onclick=lambda value: buttons_action(value)
         )
 
-        
+# FIXME
+def add_lyrics_page(nbs_data):
+    def buttons_action(value):
+        match value:
+            case 'upload_nbs':
+                if pin.uploaded_nbs is None:
+                    toast(
+                        content='Для начала, выберите файл',
+                        duration=3, color='info',
+                    )
+                else:
+                    nbs_data = get_metadata(BytesIO(pin.uploaded_nbs['content']))
+                    if isinstance(nbs_data, str):
+                        toast(
+                            content=str(nbs_data),
+                            duration=3, color='red',
+                        )
+                    elif not nbs_data[0].tempo in TEMPO:
+                        edit_tempo_page(nbs_data)
+                    else:
+                        edit_meta_page(nbs_data)
 
+            case 'index_page':
+                index_page()
 
-# TODO: на потом
-def show_lyrics_input():
+    with use_scope('title', clear=True):
+        put_markdown('# Выберите файл для загрузки')
+    
+    with use_scope('description', clear=True):
+        put_markdown('правила загрузки')
+    
     with use_scope('inputs', clear=True):
         put_file_upload(
-            name='uploaded_txt', accept=".txt",
-            max_size='50K', placeholder='Загрузите текст песни',
+            name='uploaded_nbs', accept=".nbs",
+            max_size='250K', placeholder='Выбери NBS файл для загрузки',
+            help_text='hello'
         )
-        put_buttons(['Загрузить'], lambda _: upload_data(pin.uploaded_txt))
+        put_buttons(
+            [  
+                dict(label=i[0], value=i[1], color=i[2])  
+                for i in [
+                    ['Загрузить', 'upload_nbs', 'primary'],
+                    ['Отмена', 'index_page', 'danger']
+                ]  
+            ],
+            onclick=lambda value: buttons_action(value)
+        )
+        
 
 def show_latests_table():
     with use_scope('latest_tracks', clear=True):

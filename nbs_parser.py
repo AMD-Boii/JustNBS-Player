@@ -35,11 +35,11 @@ def get_metadata(nbs_file: BytesIO) -> Union[tuple, str]:
 
         print(header.tempo)
 
-        assert header.version == 5, 'Неподдерживаемая версия NBS!'
-        assert header.tempo in TEMPO, 'Неподдерживаемый темп!'
+        #assert header.version == 5, 'Неподдерживаемая версия NBS!'
+        #assert header.tempo in TEMPO, 'Неподдерживаемый темп!'
 
-        length = header.song_length * (TEMPO.index(header.tempo) + 1)
-        duration = str(datetime.timedelta(seconds=length // 20))
+        #length = header.song_length * (TEMPO.index(header.tempo) + 1)
+        #duration = str(datetime.timedelta(seconds=length // 20))
 
         notes = nbs_data.notes
         layers = nbs_data.layers
