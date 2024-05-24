@@ -10,13 +10,15 @@ from pywebio.session import set_env, info as session_info, run_js
 from threading import Thread
 from os import environ, path
 from io import BytesIO
-from requests import get as req_get, post as req_post
+#from requests import get as req_get, post as req_post
+
+import requests
 
 import requests
 import json
 import asyncio
 
-from nbs_parser import TEMPO, get_metadata, parse, separate_data
+from nbs_parser import TEMPO, get_metadata, parse, sepparate_data
 
 
 try:
@@ -30,7 +32,7 @@ except:
     PLAYLIST_GIST = None
 
 
-response: Optional[requests.Request] = None
+#response: Optional[requests.Request] = None
 
 
 # def request():
@@ -86,6 +88,12 @@ def main():
     put_scope('content', position=2,)
     put_scope('inputs', position=3,)
     put_scope('latest_tracks', position=4,)
+
+    run_js("""
+    window.onbeforeunload = function() {
+        return "Вы уверены, что хотите покинуть эту страницу?";
+    }
+    """)
 
     if PLAYLIST_GIST is None:
         put_markdown(lang.NO_PLAYLIST_GIST)
@@ -318,6 +326,9 @@ def edit_meta_page(nbs_data):
                 pin.author = nbs_data[0].song_author
             case 'use_origin_author':
                 pin.author = nbs_data[0].original_author
+            case 'send':
+                nbs_data[0].loop = pin.use_loop
+                send_page(nbs_data)
             case 'upload_page':
                 upload_page()
 
@@ -363,88 +374,161 @@ def edit_meta_page(nbs_data):
                     },
                 ], 
                 inline=True,)
+            put_input(
+                name='loop_count', type=NUMBER,
+                value=nbs_data[0].max_loop_count)
+            
+        else:
+            pin.use_loop = False
         put_buttons(
             [  
                 dict(label=i[0], value=i[1], color=i[2])  
                 for i in [
-                    ['Отмена', 'upload_page', 'danger']
+                    ['Отправить', 'send', 'danger'],
+                    ['Отмена', 'upload_page', 'danger'],
                 ]  
             ],
             onclick=lambda value: buttons_action(value)
         )
 
-# FIXME
-def add_lyrics_page(nbs_data):
-    def buttons_action(value):
-        match value:
-            case 'upload_nbs':
-                if pin.uploaded_nbs is None:
-                    toast(
-                        content='Для начала, выберите файл',
-                        duration=3, color='info',
-                    )
-                else:
-                    nbs_data = get_metadata(BytesIO(pin.uploaded_nbs['content']))
-                    if isinstance(nbs_data, str):
-                        toast(
-                            content=str(nbs_data),
-                            duration=3, color='red',
-                        )
-                    elif not nbs_data[0].tempo in TEMPO:
-                        edit_tempo_page(nbs_data)
-                    else:
-                        edit_meta_page(nbs_data)
-
-            case 'index_page':
-                index_page()
-
+def send_page(nbs_data):
     with use_scope('title', clear=True):
-        put_markdown('# Выберите файл для загрузки')
+        put_markdown('# Отправка трек в GitHub')
     
     with use_scope('content', clear=True):
-        put_markdown('правила загрузки')
+        put_markdown('Пожалуйста, подождите')
     
     with use_scope('inputs', clear=True):
-        put_file_upload(
-            name='uploaded_nbs', accept=".nbs",
-            max_size='250K', placeholder='Выбери NBS файл для загрузки',
-            help_text='hello'
+        put_loading(shape='border', color='primary')
+    
+    header = nbs_data[0]
+    layers = nbs_data[1]
+    notes = nbs_data[2]
+
+    note_seq = parse(
+        header.song_length, TEMPO.index(header.tempo) + 1, layers, notes)
+
+    sepparated = sepparate_data(note_seq)
+    
+    headers = {
+        'Accept': 'application/vnd.github+json',
+        'Authorization': f'Bearer {GITHUB_TOKEN}',
+        'X-GitHub-Api-Version': '2022-11-28'
+    }
+
+    new_content = {
+        'description': 'Example of a gist',
+        'public': True,
+        'files': {
+            'header.json': {
+                'content': 'hello world'
+            }
+        }
+    }
+
+    URL = 'https://api.github.com/gists'
+
+    for element in sepparated:
+        content = json.dumps(element, separators=(',', ':'))
+        
+        new_content['files'].update(
+            {
+                f'track_{sepparated.index(element)}.json': {
+                    'content': content,
+                }
+            }
         )
-        put_buttons(
-            [  
-                dict(label=i[0], value=i[1], color=i[2])  
-                for i in [
-                    ['Загрузить', 'upload_nbs', 'primary'],
-                    ['Отмена', 'index_page', 'danger']
-                ]  
-            ],
-            onclick=lambda value: buttons_action(value)
-        )
+    
+    response = requests.post(
+        url=URL, headers=headers, data=json.dumps(new_content)
+    )
+    
+    with use_scope('inputs', clear=True):
+        if response.status_code == 201:
+            popup(title='Трек добавлен!', content=[
+                put_buttons(['OK'], onclick=lambda _: close_popup()),
+                put_textarea(
+                    name='text',
+                    value=response.json()['files']['header.json']['raw_url'],),
+            ])
+        else:
+            popup('Ошибка!', [
+                put_buttons(['Не OK :с'], onclick=lambda _: close_popup()),
+                put_markdown(str(response.status_code))
+            ])
+
+# # TODO
+# def add_lyrics_page(nbs_data):
+#     def buttons_action(value):
+#         match value:
+#             case 'upload_nbs':
+#                 if pin.uploaded_nbs is None:
+#                     toast(
+#                         content='Для начала, выберите файл',
+#                         duration=3, color='info',
+#                     )
+#                 else:
+#                     nbs_data = get_metadata(BytesIO(pin.uploaded_nbs['content']))
+#                     if isinstance(nbs_data, str):
+#                         toast(
+#                             content=str(nbs_data),
+#                             duration=3, color='red',
+#                         )
+#                     elif not nbs_data[0].tempo in TEMPO:
+#                         edit_tempo_page(nbs_data)
+#                     else:
+#                         edit_meta_page(nbs_data)
+
+#             case 'index_page':
+#                 index_page()
+
+#     with use_scope('title', clear=True):
+#         put_markdown('# Выберите файл для загрузки')
+    
+#     with use_scope('content', clear=True):
+#         put_markdown('правила загрузки')
+    
+#     with use_scope('inputs', clear=True):
+#         put_file_upload(
+#             name='uploaded_nbs', accept=".nbs",
+#             max_size='250K', placeholder='Выбери NBS файл для загрузки',
+#             help_text='hello'
+#         )
+#         put_buttons(
+#             [  
+#                 dict(label=i[0], value=i[1], color=i[2])  
+#                 for i in [
+#                     ['Загрузить', 'upload_nbs', 'primary'],
+#                     ['Отмена', 'index_page', 'danger']
+#                 ]  
+#             ],
+#             onclick=lambda value: buttons_action(value)
+#         )
         
 
-def show_latests_table():
-    with use_scope('latest_tracks', clear=True):
-        data = get_latest_tracks()
-        table_data = []
-        for author in data:
-            for track in data[author]:
-                meta = data[author][track]
-                table_data.append([author, meta['duration'], meta['file_amount'],],)
+# def show_latests_table():
+#     with use_scope('latest_tracks', clear=True):
+#         data = get_latest_tracks()
+#         table_data = []
+#         for author in data:
+#             for track in data[author]:
+#                 meta = data[author][track]
+#                 table_data.append([author, meta['duration'], meta['file_amount'],],)
         
-        put_table(table_data)
+#         put_table(table_data)
 
-def get_latest_tracks():
-    response = requests.get(url='https://gist.github.com/AMD-Boii/f8c7e17f23454fbf34c7ca0be7fe6d27/raw/ce4675c5463ced399e779790f51b5bda5169ecff/latest_tracks.json')
-    return response.json()
+# def get_latest_tracks():
+#     response = requests.get(url='https://gist.github.com/AMD-Boii/f8c7e17f23454fbf34c7ca0be7fe6d27/raw/ce4675c5463ced399e779790f51b5bda5169ecff/latest_tracks.json')
+#     return response.json()
 
-def backup_latest_tracks():
-    pass
+# def backup_latest_tracks():
+#     pass
 
-def get_full_playlist():
-    pass
+# def get_full_playlist():
+#     pass
 
-def backup_full_playlist():
-    pass
+# def backup_full_playlist():
+#     pass
 
 # def upload_data(uploaded_nbs):
 #     # popup(title='Размер файла', content=str(len(fileobj['content']),),)

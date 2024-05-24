@@ -18,6 +18,27 @@ TEMPO = (
     # 0.56, 0.54, 0.53, 0.51, 0.5,
 )
 
+NOTE_BLOCK_VAR = 'block.note_block.'
+
+BASE_INSTRUMENTS = (
+    'harp',
+    'bass',
+    'basedrum',
+    'snare',
+    'hat',
+    'guitar',
+    'flute',
+    'bell',
+    'chime',
+    'xylophone',
+    'iron_xylophone',
+    'cow_bell',
+    'didgeridoo',
+    'bit',
+    'banjo',
+    'pling',
+)
+
 
 def get_metadata(nbs_file: BytesIO) -> Union[tuple, str]:
     '''
@@ -78,8 +99,7 @@ def parse(length: int,
                     if pitch_octave is None: continue
                     
                     element = [
-                        note.instrument,
-                        pitch_octave[1], 
+                        NOTE_BLOCK_VAR + BASE_INSTRUMENTS[note.instrument] + pitch_octave[1],
                         pitch_octave[0],
                         volume[0],
                         volume[1]
@@ -121,7 +141,7 @@ def set_pitch_octave(key, pitch):
     else:
         return None
     
-    pitch = round(0.5*2**((key-9-octave_range*24)/12), 4)
+    pitch = round(0.5*2**((key-9-octave_range*24)/12), 8)
     if pitch % 1 == 0.0: pitch = int(pitch)
     if octave_range == 1: octave_range = ''
     else: octave_range = '_' + str(octave_range - 1)
@@ -160,7 +180,8 @@ def set_volume(n_vel, l_vol, n_pan, l_pan):
 
     return (vol_l, vol_r)
 
-def separate_data(raw_data: list[list, int]) -> list[list]:
+# FIXME оптимизация проверки на кол-во символов
+def sepparate_data(raw_data: list[list, int]) -> list[list]:
     final = []
     data = []
     counter = 0
