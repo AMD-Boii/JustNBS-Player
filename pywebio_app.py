@@ -10,11 +10,11 @@ from pywebio.session import set_env, info as session_info, run_js
 from threading import Thread
 from os import environ, path
 from io import BytesIO
+from requests import get as req_get, post as req_post
 
 import requests
 import json
 import asyncio
-import pathlib
 
 from nbs_parser import get_metadata, parse, separate_data
 
@@ -26,7 +26,6 @@ try:
         URL = f'https://api.github.com/gists/{PLAYLIST_GIST}'
     except:
         GITHUB_TOKEN = None
-        URL = None
 except:
     PLAYLIST_GIST = None
 
@@ -80,23 +79,30 @@ def main():
     put_scope('inputs', position=3)
     put_scope('latest_tracks', position=4)
 
-    with use_scope('image', clear=True):
-        put_image(open(path.join('resources', 'logo.png'), 'rb').read())
-
     if PLAYLIST_GIST is None:
         put_markdown('# ОТСУТСТВУЕТ PLAYLIST_GIST В ПЕРЕМЕННЫХ СРЕДЫ')
     else:
         if GITHUB_TOKEN is None:
             put_markdown('# ОТСУТСТВУЕТ GITHUB_TOKEN В ПЕРЕМЕННЫХ СРЕДЫ')
+        elif not GITHUB_TOKEN.startswith('ghp_'):
+            put_markdown('# НЕВЕРНЫЙ ФОРМАТ GITHUB_TOKEN')
         else:
+            try:
+                with use_scope('image', clear=True):
+                    put_image(
+                        open(path.join('resources', 'logo.png'), 'rb').read()
+                    )
+            except:
+                with use_scope('image', clear=True):
+                    put_markdown('# NO_IMAGE')
             index_page()
 
 def index_page():
     def buttons_action(value):
         match value:
-            case 'upload_nbs':
+            case 'upload_page':
                 upload_page()
-            case 'module':
+            case 'module_page':
                 run_js(
                     """
                     navigator.clipboard.writeText("Hello, World!").then(function() {
@@ -123,7 +129,7 @@ def index_page():
                     window.open("https://github.com/AMD-Boii/JustNBS-Player")
                     """
                 )
-            case 'onbs_advice':
+            case 'advice_page':
                 advice_page()
             case _:
                 toast(
@@ -152,11 +158,11 @@ def index_page():
             [  
                 dict(label=i[0], value=i[1], color=i[2])  
                 for i in [
-                    ['Опубликовать NBS трек', 'upload_nbs', 'primary'],
-                    ['Ссылка на модуль', 'module', 'info'],
+                    ['Опубликовать NBS трек', 'upload_page', 'primary'],
+                    ['Ссылка на модуль', 'module_page', 'info'],
                     ['Скачать OpenNBS', 'onbs_download', 'danger'],
                     ['GitHub репозиторий', 'github_repo', 'info'],
-                    ['Советы по OpenNBS', 'onbs_advice', 'info']
+                    ['Советы по OpenNBS', 'advice_page', 'info'],
                 ]  
             ],
             onclick=lambda value: buttons_action(value)
@@ -165,14 +171,8 @@ def index_page():
 def advice_page():
     def buttons_action(value):
         match value:
-            case 'index':
+            case 'index_page':
                 index_page() 
-            case _:
-                toast(
-                    content='ОШИБКА ОБРАБОТЧИКА НАЖАТИЙ ADVICE_PAGE',
-                    duration=3, color='red',
-                )
-                index_page()
 
     with use_scope('title', clear=True):
         put_markdown('# Советы по работе с OpenNBS')
@@ -190,10 +190,7 @@ def advice_page():
             [  
                 dict(label=i[0], value=i[1], color=i[2])  
                 for i in [
-                    ['На главную', 'index', 'primary'],
-                    ['Опубликовать NBS трек', 'upload_nbs', 'primary'],
-                    ['Скачать OpenNBS', 'onbs_download', 'danger'],
-                    ['GitHub репозиторий', 'github_repo', 'info'],
+                    ['На главную', 'index_page', 'primary'],
                 ]  
             ],
             onclick=lambda value: buttons_action(value)
@@ -216,16 +213,9 @@ def upload_page():
                             duration=3, color='red',
                         )
                     else:
-                        file_info_page(meta)
+                        edit_tempo_page(meta[0])
 
             case 'index':
-                index_page()
-
-            case _:
-                toast(
-                    content='ОШИБКА ОБРАБОТЧИКА НАЖАТИЙ UPLOAD_PAGE',
-                    duration=3, color='red',
-                )
                 index_page()
 
     with use_scope('title', clear=True):
@@ -238,6 +228,7 @@ def upload_page():
         put_file_upload(
             name='uploaded_nbs', accept=".nbs",
             max_size='250K', placeholder='Выбери NBS файл для загрузки',
+            help_text='hello'
         )
         put_buttons(
             [  
@@ -250,15 +241,88 @@ def upload_page():
             onclick=lambda value: buttons_action(value)
         )
 
-def file_info_page(meta):
+def edit_tempo_page(header):
+    def button_action(value):
+        match value:
+            case 'edit_meta_page':
+                edit_meta_page()
+            case 'upload_page':
+                upload_page()
+    
+    with use_scope('title', clear=True):
+        put_markdown('# NBS имеет неподдерживаемый темп!')
+    
+    with use_scope('description', clear=True):
+        put_markdown('Не беда! Вы можете изменить темп прямо здесь!')
+        put_markdown('Но лучше вернуться в OpenNBS и тщательно его отредактировать...')
+        put_markdown('')
+        put_markdown('Выберите максимально близкий к исходному темп.')
+    
+    with use_scope('inputs', clear=True):
+        put_select(
+            label='Выберите поддерживаемый темп',
+            name='select',
+            options=[  
+                dict(label=i[0], value=i[1], selected=i[2])  
+                for i in [
+                    ['20.0', 20.0, True],
+                    ['10.0', 10.0, None],
+                    ['6.67', 6.67, None],
+                    ['5.0', 5.0, None],
+                    ['4.0', 4.0, None],
+                    ['3.33', 3.33, None],
+                    ['2.86', 2.86, None],
+                    ['2.5', 2.5, None],
+                    ['2.22', 2.22, None],
+                    ['10.0', 10.0, None],
+                ]  
+            ],
+        )
+
+def edit_meta_page(header):#, nbs_data):
+    def buttons_action(value):
+        match value:
+            case 'use_song_author':
+                pin.author = header.song_author
+            case 'use_origin_author':
+                pin.author = header.original_author
+            case 'upload_page':
+                upload_page()
+
     with use_scope('title', clear=True):
         put_markdown('# Подготовка к публикации')
     
     with use_scope('description', clear=True):
-        put_markdown('правила загрузки')
+        put_markdown('Подтвердите или измените метаданные NBS файла')
 
     with use_scope('inputs', clear=True):
-        pass
+        
+        put_input('author', label='Автор', value=header.original_author)
+        put_markdown('Использовать имя автора из:')
+        put_buttons(
+            [  
+                dict(label=i[0], value=i[1], color=i[2])  
+                for i in [
+                    ['Song author', 'use_song_author', 'danger'],
+                    ['Original song author', 'use_origin_author', 'danger']
+                ]  
+            ],
+            onclick=lambda value: buttons_action(value)
+        )
+        
+        put_input('song_name', label='Название', value=header.song_name)
+        
+        put_buttons(
+            [  
+                dict(label=i[0], value=i[1], color=i[2])  
+                for i in [
+                    ['Отмена', 'upload_page', 'danger']
+                ]  
+            ],
+            onclick=lambda value: buttons_action(value)
+        )
+
+        
 
 
 # TODO: на потом

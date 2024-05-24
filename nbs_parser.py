@@ -29,14 +29,14 @@ def get_metadata(nbs_file: BytesIO) -> Union[tuple, str]:
         try:
             nbs_data = pynbs.Parser(nbs_file).read_file()
         except Exception:
-            return 'Wrong or corrupted data'
+            return 'Неверный или поврежденный файл!'
         
         header = nbs_data.header
 
         print(header.tempo)
 
-        assert header.version == 5, 'Not supported NBS API'
-        assert header.tempo in TEMPO, 'Not supported tempo'
+        assert header.version == 5, 'Неподдерживаемая версия NBS!'
+        assert header.tempo in TEMPO, 'Неподдерживаемый темп!'
 
         length = header.song_length * (TEMPO.index(header.tempo) + 1)
         duration = str(datetime.timedelta(seconds=length // 20))
