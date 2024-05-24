@@ -21,11 +21,12 @@ import asyncio
 from nbs_parser import TEMPO, get_metadata, parse, sepparate_data
 
 
+URL = 'https://api.github.com/gists'
+
 try:
     PLAYLIST_GIST = environ['PLAYLIST_GIST']
     try:
         GITHUB_TOKEN = environ['GITHUB_TOKEN']
-        URL = f'https://api.github.com/gists/{PLAYLIST_GIST}'
     except:
         GITHUB_TOKEN = None
 except:
@@ -410,52 +411,109 @@ def send_page(nbs_data):
 
     sepparated = sepparate_data(note_seq)
     
-    headers = {
+    req_headers = {
         'Accept': 'application/vnd.github+json',
         'Authorization': f'Bearer {GITHUB_TOKEN}',
         'X-GitHub-Api-Version': '2022-11-28'
     }
 
-    new_content = {
-        'description': 'Example of a gist',
+    req_content = {
+        'description': header.song_author + header.song_name,
         'public': True,
         'files': {
             'header.json': {
-                'content': 'hello world'
+                'content': 'empty'
             }
         }
     }
 
-    URL = 'https://api.github.com/gists'
-
-    for element in sepparated:
-        content = json.dumps(element, separators=(',', ':'))
-        
-        new_content['files'].update(
-            {
-                f'track_{sepparated.index(element)}.json': {
-                    'content': content,
-                }
-            }
-        )
-    
     response = requests.post(
-        url=URL, headers=headers, data=json.dumps(new_content)
+        url=URL, headers=req_headers, data=json.dumps(req_content)
     )
+
+    print(response.status_code)
     
-    with use_scope('inputs', clear=True):
-        if response.status_code == 201:
-            popup(title='Трек добавлен!', content=[
-                put_buttons(['OK'], onclick=lambda _: close_popup()),
-                put_textarea(
-                    name='text',
-                    value=response.json()['files']['header.json']['raw_url'],),
-            ])
-        else:
-            popup('Ошибка!', [
-                put_buttons(['Не OK :с'], onclick=lambda _: close_popup()),
-                put_markdown(str(response.status_code))
-            ])
+    if response.status_code == 201:
+        gist_id = '/' + response.json()['id']
+        gist_raw_url = response.json()['files']['header.json']['raw_url'][:-11]
+
+        req_content = {
+            'files': {},
+        }
+
+        for element in sepparated:
+            content = json.dumps(element, separators=(',', ':'))
+            
+            req_content['files'].update(
+                {
+                    f'track_{sepparated.index(element)}.json': {
+                        'content': content,
+                    }
+                }
+            )
+        
+        response = requests.patch(
+            url=URL + gist_id, headers=req_headers, data=json.dumps(req_content)
+        )
+
+        print(response.status_code)
+
+        if response.status_code == 200:
+            links = []
+            for i in range(len(sepparated)):
+                links.append(gist_raw_url + 'track_' + str(i) + '.json')
+
+            track_header = [
+                header.song_author,
+                header.song_name,
+                header.loop,
+                header.max_loop_count,
+                header.loop_start,
+                links,
+            ]
+
+            req_content = {
+                'files': {
+                    'header.json': {
+                        'content': json.dumps(track_header)
+                    }
+                },
+            }
+
+            response = requests.patch(
+                url=URL + gist_id, headers=req_headers, 
+                data=json.dumps(req_content)
+            )
+
+            print(response.status_code)
+
+            if response.status_code == 200:
+                with use_scope('inputs', clear=True):
+                    popup(title='Трек добавлен!', content=[
+                        put_buttons(['OK'], onclick=lambda _: close_popup()),
+                        put_textarea(
+                            name='text',
+                            value=response.json()['files']['header.json']['raw_url'],),
+                    ])
+
+    
+    # response = requests.post(
+    #     url=URL, headers=headers, data=json.dumps(new_content)
+    # )
+    
+    # with use_scope('inputs', clear=True):
+    #     if response.status_code == 201:
+    #         popup(title='Трек добавлен!', content=[
+    #             put_buttons(['OK'], onclick=lambda _: close_popup()),
+    #             put_textarea(
+    #                 name='text',
+    #                 value=response.json()['files']['header.json']['raw_url'],),
+    #         ])
+    #     else:
+    #         popup('Ошибка!', [
+    #             put_buttons(['Не OK :с'], onclick=lambda _: close_popup()),
+    #             put_markdown(str(response.status_code))
+    #         ])
 
 # # TODO
 # def add_lyrics_page(nbs_data):
