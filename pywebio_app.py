@@ -18,13 +18,6 @@ import asyncio
 
 from nbs_parser import TEMPO, get_metadata, parse, separate_data
 
-if session_info.user_language == 'ru-RU':
-    import translation.ru_RU as lang
-    #import translation.en_EN as lang
-else:
-    #import translation.en_EN as lang
-    import translation.ru_RU as lang
-
 
 try:
     PLAYLIST_GIST = environ['PLAYLIST_GIST']
@@ -39,9 +32,6 @@ except:
 
 response: Optional[requests.Request] = None
 
-
-# def lang(en: str, ru: str) -> str:
-#     return ru if 'ru' or 'ua' or 'be' in session_info.user_language else en
 
 # def request():
 #     headers = {
@@ -78,7 +68,19 @@ response: Optional[requests.Request] = None
 
 @config(theme='dark')
 def main():
-    set_env(title='JustNBS Player DB')
+    global translation
+
+    if session_info.user_language == 'ru-RU':
+        import translation.ru_RU as translation
+        #import translation.en_EN as lang
+    else:
+        #import translation.en_EN as lang
+        import translation.ru_RU as translation
+    
+
+    lang = translation.Main
+
+    set_env(title='JustNBS Player DataBase')
     
     put_scope('image', position=0)
     put_scope('title', position=1)
@@ -105,39 +107,35 @@ def main():
             index_page()
 
 def index_page():
+    lang = translation.IndexPage
+
     def buttons_action(value):
         match value:
             case 'upload_page':
                 upload_page()
-            case 'module_page':
-                run_js(
-                    """
-                    navigator.clipboard.writeText("Hello, World!").then(function() {
-                    }, function(err) {
-                        console.error('Could not copy text: ', err);
-                    });
-                    """
-                )
+            case 'res_pack':
+                run_js(r"""
+                navigator.clipboard.writeText(
+                "https://gitlab.com/-/snippets/3710689/raw/main/EXTENDED_1.13.zip"
+                ).then(function() {}, function(err) {
+                    console.error('Could not copy text: ', err);
+                });
+                """)
                 toast(
-                    content=lang.LINK,
+                    content=lang.LINK_COPIED,
                     duration=3, color='info',
                 )
             case 'onbs_download':
-                run_js(
-                    """
-                    window.open(
-                        "https://github.com/OpenNBS/OpenNoteBlockStudio/releases"
-                    )
-                    """
-                )
+                run_js(r"""
+                window.open(
+                "https://github.com/OpenNBS/OpenNoteBlockStudio/releases")
+                """)
             case 'github_repo':
-                run_js(
-                    """
-                    window.open("https://github.com/AMD-Boii/JustNBS-Player")
-                    """
-                )
-            case 'advice_page':
-                advice_page()
+                run_js(r"""
+                window.open("https://github.com/AMD-Boii/JustNBS-Player")
+                """)
+            case 'search_page':
+                index_page()
     
     with use_scope('title', clear=True):
         put_markdown(lang.WELCOME)
@@ -145,65 +143,113 @@ def index_page():
     with use_scope('content', clear=True):
         put_tabs([
             {
-                'title': 'О проекте',
+                'title': lang.ABOUT,
                 'content': [
-                    put_markdown(lang.ABOUT)
+                    put_markdown(lang.ABOUT_CONTENT),
+                    put_buttons(
+                        [  
+                            dict(label=i[0], value=i[1], color=i[2])  
+                            for i in [
+                                ['GitHub репозиторий', 'github_repo', 'info'],
+                            ]  
+                        ],
+                        onclick=lambda value: buttons_action(value)
+                    ),
                 ],
-            }
-        ])
-        put_markdown(
-            '''
-            Ссылка на ресурс пак с расширением октав
-            Требования к .nbs файлу:
-            • версия OpenNBS -- 3.10.0
-            • использовать только стандартные звуки
-            Короткий гайд по созданию мелодии:
-            • скачайте и установите Open Note Block Studio 3.10.0
-            '''
-        )
+            },
+            {
+                'title': lang.INSTALLING,
+                'content': [
+                    put_markdown(lang.INSTALLING_CONTENT),
+                    put_buttons(
+                        [  
+                            dict(label=i[0], value=i[1], color=i[2])  
+                            for i in [
+                                ['Ресурспак', 'res_pack', 'info'],
+                            ]  
+                        ],
+                        onclick=lambda value: buttons_action(value)
+                    ),
+                ],
+            },
+            {
+                'title': lang.REQS,
+                'content': [
+                    put_markdown(lang.REQS_CONTENT)
+                ],
+            },
+            {
+                'title': lang.RECENT_TRACKS,
+                'content': [
+                    put_markdown('# TODO вывод последних'), #TODO
+                    put_buttons(
+                        [  
+                            dict(label=i[0], value=i[1], color=i[2])  
+                            for i in [
+                                ['Обновить', 'update_recent', 'info'],
+                            ]  
+                        ],
+                        onclick=lambda value: buttons_action(value)
+                    ),
+                ],
+            },
+            {
+                'title': lang.HELP,
+                'content': [
+                    put_markdown(lang.HELP_CONTENT),
+                    put_buttons(
+                        [  
+                            dict(label=i[0], value=i[1], color=i[2])  
+                            for i in [
+                                ['Скачать OpenNBS', 'onbs_download', 'danger'],
+                            ]  
+                        ],
+                        onclick=lambda value: buttons_action(value)
+                    )
+                ],
+            },
+        ],
+        scope='content')
     
     with use_scope('inputs', clear=True):
         put_buttons(
             [  
                 dict(label=i[0], value=i[1], color=i[2])  
                 for i in [
-                    ['Опубликовать NBS трек', 'upload_page', 'primary'],
-                    ['Ссылка на модуль', 'module_page', 'info'],
-                    ['Скачать OpenNBS', 'onbs_download', 'danger'],
-                    ['GitHub репозиторий', 'github_repo', 'info'],
-                    ['Советы по OpenNBS', 'advice_page', 'info'],
+                    ['Опубликовать трек', 'upload_page', 'primary'],
+                    ['Поиск треков', 'search_page', 'primary'],
                 ]  
             ],
             onclick=lambda value: buttons_action(value)
         )
 
-def advice_page():
-    def buttons_action(value):
-        match value:
-            case 'index_page':
-                index_page() 
+# def advice_page():
+#     def buttons_action(value):
+#         match value:
+#             case 'index_page':
+#                 index_page() 
 
-    with use_scope('title', clear=True):
-        put_markdown('# Советы по работе с OpenNBS')
+#     with use_scope('title', clear=True):
+#         put_markdown('# Советы по работе с OpenNBS')
     
-    with use_scope('description', clear=True):
-        put_markdown(
-            '''
-            Короткий гайд по созданию мелодии:
-            • скачайте и установите Open Note Block Studio 3.10.0
-            '''
-        )
+#     with use_scope('content', clear=True):
+#         put_markdown(
+#             '''
+#             Короткий гайд по созданию мелодии:
+#             • скачайте и установите Open Note Block Studio 3.10.0
+#             '''
+#         )
     
-    with use_scope('inputs', clear=True):
-        put_buttons(
-            [  
-                dict(label=i[0], value=i[1], color=i[2])  
-                for i in [
-                    ['На главную', 'index_page', 'primary'],
-                ]  
-            ],
-            onclick=lambda value: buttons_action(value),
-        )
+#     with use_scope('inputs', clear=True):
+#         put_buttons(
+#             [  
+#                 dict(label=i[0], value=i[1], color=i[2])  
+#                 for i in [
+#                     ['На главную', 'index_page', 'primary'],
+#                 ]  
+#             ],
+#             onclick=lambda value: buttons_action(value),
+#         )
     
 def upload_page():
     def buttons_action(value):
@@ -231,7 +277,7 @@ def upload_page():
     with use_scope('title', clear=True):
         put_markdown('# Выберите файл для загрузки')
     
-    with use_scope('description', clear=True):
+    with use_scope('content', clear=True):
         put_markdown('правила загрузки')
     
     with use_scope('inputs', clear=True):
@@ -262,7 +308,7 @@ def edit_tempo_page(nbs_data):
     with use_scope('title', clear=True):
         put_markdown('# NBS имеет неподдерживаемый темп!')
     
-    with use_scope('description', clear=True):
+    with use_scope('content', clear=True):
         put_markdown('Не беда! Вы можете изменить темп прямо здесь!')
         put_markdown('Но лучше вернуться в OpenNBS и тщательно его отредактировать...')
         put_markdown('Выберите максимально близкий к исходному темп.')
@@ -311,7 +357,7 @@ def edit_meta_page(nbs_data):
     with use_scope('title', clear=True):
         put_markdown('# Подготовка к публикации')
     
-    with use_scope('description', clear=True):
+    with use_scope('content', clear=True):
         put_markdown('Подтвердите или измените метаданные NBS файла')
 
     with use_scope('inputs', clear=True):
@@ -368,7 +414,7 @@ def add_lyrics_page(nbs_data):
     with use_scope('title', clear=True):
         put_markdown('# Выберите файл для загрузки')
     
-    with use_scope('description', clear=True):
+    with use_scope('content', clear=True):
         put_markdown('правила загрузки')
     
     with use_scope('inputs', clear=True):
