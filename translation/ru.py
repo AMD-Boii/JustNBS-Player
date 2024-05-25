@@ -80,6 +80,9 @@ class UploadPage:
 
     UPLOAD_RULES = r'правила загрузки'
 
+    # Toast
+    PICK_A_FILE_FIRST = r'Для начала, выберите файл'
+
     # Upload
     PLACEHOLDER = r'Выбери NBS файл для загрузки'
     HELP_TEXT = r'hello'
@@ -91,7 +94,7 @@ class UploadPage:
 class EditTempoPage:
     UNSUPPORTED_TEMPO = r'# NBS имеет неподдерживаемый темп!'
 
-    ITS_OK = r"""
+    NO_WORRIES = r"""
         Не беда! Вы можете изменить темп прямо здесь!
         Но лучше вернуться в OpenNBS и тщательно его отредактировать...
         Выберите максимально близкий к исходному темп.
@@ -102,4 +105,4 @@ class EditTempoPage:
 
     # Buttons
     ACCEPT = r'Подтвердить'
-    CANCEL = r'Отмена'
+    GO_BACK = r'Назад'

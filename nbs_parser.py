@@ -8,7 +8,7 @@ from typing import Optional, Union
 from dataclasses import dataclass
 
 from io import BytesIO
-from pynbs import Layer, Note, Header
+from pynbs import Layer, Note#, Header
 
 import pynbs
 import json
@@ -47,21 +47,24 @@ BASE_INSTRUMENTS = (
 )
 
 
-# @dataclass
-# class Header:
-#     author: str
-#     name: str
-#     tick_delay: int
-#     loop: bool
-#     loop_count: int
-#     loop_start: int
+@dataclass
+class Header:
+    author: str
+    name: str
+    duration: int
+    tick_delay: int
+    length: int
+    loop: bool
+    loop_count: int
+    loop_start: int
     
-#     song_author: str
-#     original_author: str
-#     song_name: str
-#     song_duration: int
-#     song_length: int
-#     tempo: float
+    old_author: str
+    old_original: str
+    old_name: str
+    old_tempo: float
+    old_loop: bool
+    old_loop_count: int
+    old_loop_start: int
 
 
 def get_metadata(nbs_file: BytesIO) -> Union[
@@ -74,21 +77,26 @@ def get_metadata(nbs_file: BytesIO) -> Union[
     except Exception:
         return 'WRONG_OR_CORRUPTED'
     
-    header = nbs_data.header
+    old = nbs_data.header
 
-    # header = Header(
-    #     author=old.song_author,
-    #     name=old.song_name,
-    #     tick_delay=TEMPO.index(old.tempo) + 1,
-    #     loop=old.loop,
-    #     loop_count=old.max_loop_count,
-    #     loop_start=old.loop_start,
+    header = Header(
+        author=old.song_author,
+        name=old.song_name,
+        duration=(TEMPO.index(old.tempo)+1)*old.song_length if old.tempo in TEMPO else 0,
+        tick_delay=TEMPO.index(old.tempo)+1 if old.tempo in TEMPO else 0,
+        length=old.song_length,
+        loop=old.loop,
+        loop_count=old.max_loop_count,
+        loop_start=old.loop_start,
 
-    #     song_author=old.song_author,
-    #     original_author=old.original_author,
-    #     song_name=old.song_name,
-
-    # )
+        old_author=old.song_author,
+        old_original=old.original_author,
+        old_name=old.song_name,
+        old_tempo=old.tempo,
+        old_loop=old.loop,
+        old_loop_count=old.max_loop_count,
+        old_loop_start=old.loop_start,
+    )
 
     #length = header.song_length * (TEMPO.index(header.tempo) + 1)
     #duration = str(datetime.timedelta(seconds=length // 20))
