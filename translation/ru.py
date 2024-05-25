@@ -9,11 +9,11 @@ class Main:
     NO_JUSTNBS_GIST_ID = r'# ОТСУТСТВУЕТ JUSTNBS_GIST_ID В ПЕРЕМЕННЫХ СРЕДЫ'
     WRONG_JUSTNBS_GIST_ID_FORMAT = r'# НЕВЕРНЫЙ ФОРМАТ ИЛИ ПОВРЕЖДЕН JUSTNBS_GIST_ID'
 
-    NO_PLAYLIST_RAW = r'# ОТСУТСТВУЕТ PLAYLIST_RAW В ПЕРЕМЕННЫХ СРЕДЫ'
-    WRONG_PLAYLIST_RAW_FORMAT = r'# НЕВЕРНЫЙ ФОРМАТ ИЛИ ПОВРЕЖДЕН PLAYLIST_RAW'
+    NO_ACTUAL_PLAYLIST_RAW = r'# ОТСУТСТВУЕТ ACTUAL_PLAYLIST_RAW В ПЕРЕМЕННЫХ СРЕДЫ'
+    WRONG_ACTUAL_PLAYLIST_RAW_FORMAT = r'# НЕВЕРНЫЙ ФОРМАТ ИЛИ ПОВРЕЖДЕН ACTUAL_PLAYLIST_RAW'
 
-    NO_LATESTS_RAW = r'# ОТСУТСТВУЕТ LATESTS_RAW В ПЕРЕМЕННЫХ СРЕДЫ'
-    WRONG_LATESTS_RAW_FORMAT = r'# НЕВЕРНЫЙ ФОРМАТ ИЛИ ПОВРЕЖДЕН LATESTS_RAW'
+    NO_LATEST_TRACKS_RAW = r'# ОТСУТСТВУЕТ LATESTS_RAW В ПЕРЕМЕННЫХ СРЕДЫ'
+    WRONG_LATEST_TRACKS_RAW_FORMAT = r'# НЕВЕРНЫЙ ФОРМАТ ИЛИ ПОВРЕЖДЕН LATESTS_RAW'
 
     NO_GITHUB_TOKEN = r'# ОТСУТСТВУЕТ GITHUB_TOKEN В ПЕРЕМЕННЫХ СРЕДЫ'
     WRONG_GITHUB_TOKEN_FORMAT = r'# НЕВЕРНЫЙ ФОРМАТ ИЛИ ПОВРЕЖДЕН GITHUB_TOKEN'

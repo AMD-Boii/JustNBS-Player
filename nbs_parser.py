@@ -5,7 +5,10 @@
 from __future__ import annotations
 from typing import Optional, Union
 
+from dataclasses import dataclass
+
 from io import BytesIO
+from pynbs import Header, Layer, Note
 
 import pynbs
 import json
@@ -44,35 +47,38 @@ BASE_INSTRUMENTS = (
 )
 
 
-def get_metadata(nbs_file: BytesIO) -> Union[tuple, str]:
+@dataclass
+class NewHeader:
+    song_author: str
+    original_author: str
+    song_name: str
+    song_duration: int
+    song_length: int
+    tempo: float
+    loop: bool
+    max_loop_count: int
+    loop_start: int
+
+
+def get_metadata(nbs_file: BytesIO) -> Union[
+    tuple[Header, list[Note], list[Layer],], str]:
     '''
-    Reads metadata from the NBS file, checks conditions\n
-    and returns header and NBS data for further parsing\n
-    if matches these conditions.
+    FIXME
     '''
     try:
-        try:
-            nbs_data = pynbs.Parser(nbs_file).read_file()
-        except Exception:
-            return 'Неверный или поврежденный файл!'
-        
-        header = nbs_data.header
-
-        #print(header.tempo)
-
-        #assert header.version == 5, 'Неподдерживаемая версия NBS!'
-        #assert header.tempo in TEMPO, 'Неподдерживаемый темп!'
-
-        #length = header.song_length * (TEMPO.index(header.tempo) + 1)
-        #duration = str(datetime.timedelta(seconds=length // 20))
-
-        notes = nbs_data.notes
-        layers = nbs_data.layers
-
-        return header, notes, layers
+        nbs_data = pynbs.Parser(nbs_file).read_file()
+    except Exception:
+        return 'WRONG_OR_CORRUPTED'
     
-    except AssertionError as assertion:
-        return assertion.__str__()
+    header = nbs_data.header
+
+    #length = header.song_length * (TEMPO.index(header.tempo) + 1)
+    #duration = str(datetime.timedelta(seconds=length // 20))
+
+    notes = nbs_data.notes
+    layers = nbs_data.layers
+
+    return header, notes, layers
 
 def parse(length: int,
           tempo: int,

@@ -13,32 +13,35 @@ from pywebio.session import set_env, info as session_info, run_js
 
 from threading import Thread
 from os import environ, path
-from io import BytesIO
 from requests import get as req_get, post as req_post, patch as req_patch
 from re import fullmatch
 
+from io import BytesIO
+from pynbs import Layer, Note
+
 import requests
 import json
-import asyncio
 
-from nbs_parser import TEMPO, get_metadata, parse, sepparate_data
+from nbs_parser import (
+    TEMPO, NewHeader as Header, get_metadata, parse, sepparate_data
+)
 
 
 try:
     JUSTNBS_GIST_ID = environ['JUSTNBS_GIST_ID']
     try:
-        PLAYLIST_RAW = environ['PLAYLIST_RAW']
+        ACTUAL_PLAYLIST_RAW = environ['ACTUAL_PLAYLIST_RAW']
         try:
-            LATESTS_RAW = environ['LATESTS_RAW']
+            LATEST_TRACKS_RAW = environ['LATEST_TRACKS_RAW']
             try:
                 GITHUB_TOKEN = environ['GITHUB_TOKEN']
                 API_URL = 'https://api.github.com/gists'
             except:
                 GITHUB_TOKEN = None
         except:
-            LATESTS_RAW = None
+            LATEST_TRACKS_RAW = None
     except:
-        PLAYLIST_RAW = None
+        ACTUAL_PLAYLIST_RAW = None
 except:
     JUSTNBS_GIST_ID = None
 
@@ -70,19 +73,25 @@ def main():
     elif not bool(fullmatch(r'[0-9a-f]{32}', JUSTNBS_GIST_ID),):
         put_markdown(lang.WRONG_JUSTNBS_GIST_ID_FORMAT)
 
-    elif PLAYLIST_RAW is None:
-        put_markdown(lang.NO_PLAYLIST_RAW)
-    elif not PLAYLIST_RAW.startswith(r'https://gist.github.com/'):
-        put_markdown(lang.WRONG_PLAYLIST_RAW_FORMAT)
+    elif ACTUAL_PLAYLIST_RAW is None:
+        put_markdown(lang.NO_ACTUAL_PLAYLIST_RAW)
+    elif not ACTUAL_PLAYLIST_RAW.startswith(r'https://gist.github.com/'):
+        put_markdown(lang.WRONG_ACTUAL_PLAYLIST_RAW_FORMAT)
+    elif not JUSTNBS_GIST_ID in ACTUAL_PLAYLIST_RAW:
+        put_markdown(lang.WRONG_ACTUAL_PLAYLIST_RAW_FORMAT)
 
-    elif LATESTS_RAW is None:
-        put_markdown(lang.NO_LATESTS_RAW)
-    elif not LATESTS_RAW.startswith(r'https://gist.github.com/'):
-        put_markdown(lang.WRONG_LATESTS_RAW_FORMAT)
+    elif LATEST_TRACKS_RAW is None:
+        put_markdown(lang.NO_LATEST_TRACKS_RAW)
+    elif not LATEST_TRACKS_RAW.startswith(r'https://gist.github.com/'):
+        put_markdown(lang.WRONG_LATEST_TRACKS_RAW_FORMAT)
+    elif not JUSTNBS_GIST_ID in LATEST_TRACKS_RAW:
+        put_markdown(lang.WRONG_LATEST_TRACKS_RAW_FORMAT)
 
     elif GITHUB_TOKEN is None:
         put_markdown(lang.NO_GITHUB_TOKEN)
     elif not GITHUB_TOKEN.startswith(r'ghp_'):
+        put_markdown(lang.WRONG_GITHUB_TOKEN_FORMAT)
+    elif not bool(fullmatch(r'[0-9a-fA-F]{36}', GITHUB_TOKEN[4:]),):
         put_markdown(lang.WRONG_GITHUB_TOKEN_FORMAT)
         
     else:
@@ -219,7 +228,7 @@ def upload_page():
                         content='Для начала, выберите файл',
                         duration=3, color='info',)
                 else:
-                    nbs_data = get_metadata(BytesIO(pin.uploaded_nbs['content']))
+                    nbs_data = get_metadata(BytesIO(pin.uploaded_nbs['content']),)
                     if isinstance(nbs_data, str):
                         toast(
                             content=str(nbs_data),
@@ -252,7 +261,7 @@ def upload_page():
             ],
             onclick=lambda value: buttons_action(value),)
 
-def edit_tempo_page(nbs_data):
+def edit_tempo_page(nbs_data: tuple[Header, Note, Layer]):
     lang = translate.EditTempoPage
 
     def buttons_action(value):
@@ -310,7 +319,7 @@ def edit_tempo_page(nbs_data):
             onclick=lambda value: buttons_action(value)
         )
 
-def edit_meta_page(nbs_data):
+def edit_meta_page(nbs_data: tuple[Header, list[Note], list[Layer],]):
     def buttons_action(value):
         match value:
             case 'use_song_author':
@@ -382,7 +391,7 @@ def edit_meta_page(nbs_data):
             onclick=lambda value: buttons_action(value)
         )
 
-def send_page(nbs_data):
+def send_page(nbs_data: tuple[Header, list[Note], list[Layer],]):
     with use_scope('title', clear=True):
         put_markdown('# Отправка трек в GitHub')
     
@@ -393,8 +402,8 @@ def send_page(nbs_data):
         put_loading(shape='border', color='primary')
     
     header = nbs_data[0]
-    layers = nbs_data[1]
-    notes = nbs_data[2]
+    notes = nbs_data[1]
+    layers = nbs_data[2]
 
     note_seq = parse(
         header.song_length, TEMPO.index(header.tempo) + 1, layers, notes)
