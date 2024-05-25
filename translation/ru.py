@@ -91,7 +91,8 @@ class UploadPage:
     UPLOAD = r'Загрузить'
     CANCEL = r'Отмена'
 
-class EditTempoPage:
+
+class FixTempoPage:
     UNSUPPORTED_TEMPO = r'# NBS имеет неподдерживаемый темп!'
 
     NO_WORRIES = r"""
@@ -106,3 +107,7 @@ class EditTempoPage:
     # Buttons
     ACCEPT = r'Подтвердить'
     GO_BACK = r'Назад'
+
+
+class EditHeaderPage:
+    pass

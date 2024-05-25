@@ -13,7 +13,7 @@ from pywebio.session import set_env, info as session_info, run_js
 
 from os import environ, path
 from requests import get as get_req, post as post_req, patch as patch_req
-from re import fullmatch
+from re import fullmatch, sub
 
 from io import BytesIO
 
@@ -276,7 +276,7 @@ def upload_page():
             [  
                 dict(label=i[0], value=i[1], color=i[2])  
                 for i in [
-                    [lang.UPLOAD, 'btn_upload', 'success'],
+                    [lang.UPLOAD, 'btn_upload', 'primary'],
                     [lang.CANCEL, 'btn_cancel', 'danger'],]  
             ],
             onclick=lambda value: button_actions(value),)
@@ -304,18 +304,19 @@ def overview_custom_page(nbs_data: tuple[Header, list, list,]): # TODO
     #         [  
     #             dict(label=i[0], value=i[1], color=i[2])
     #             for i in [
-    #                 ['lang.ACCEPT', 'btn_accept', 'success'],
+    #                 ['lang.ACCEPT', 'btn_accept', 'primary'],
     #                 ['lang.GO_BACK', 'btn_go_back', 'danger'],]
     #         ],
     #         onclick=lambda value: button_actions(value),)
 
 def fix_tempo_page(nbs_data: tuple[Header, list, list,]):
-    lang = translate.EditTempoPage
+    lang = translate.FixTempoPage
+    header = nbs_data[0]
 
     def button_actions(value):
         match value:
             case 'btn_accept':
-                nbs_data[0].tick_delay = pin.new_tempo
+                header.tick_delay = pin.new_tempo
                 edit_header_page(nbs_data)
             case 'btn_go_back':
                 upload_page()
@@ -328,37 +329,118 @@ def fix_tempo_page(nbs_data: tuple[Header, list, list,]):
     
     with use_scope('inputs', clear=True):
         put_select(
-            label=lang.PICK_TEMPO.replace('TEMPO', str(nbs_data[0].old_tempo),),
+            label=lang.PICK_TEMPO.replace('TEMPO', str(header.old_tempo),),
             name='new_tempo',
             options=[  
                 dict(label=str(tempo)+r' t/s', value=i+1,
-                     selected=(i+1 == nbs_data[0].tick_delay or i == 0))
+                     selected=(i+1 == header.tick_delay or i == 0))
                     for i, tempo in enumerate(TEMPO)],)
         put_buttons(
             [  
                 dict(label=i[0], value=i[1], color=i[2])
                 for i in [
-                    [lang.ACCEPT, 'btn_accept', 'success'],
+                    [lang.ACCEPT, 'btn_accept', 'primary'],
                     [lang.GO_BACK, 'btn_go_back', 'danger'],]
             ],
             onclick=lambda value: button_actions(value),)
 
 def edit_header_page(nbs_data: tuple[Header, list, list,]):
+    lang = translate.EditHeaderPage
+    header = nbs_data[0]
+
     def check_author_len():
-        if len(pin.inp_author) > 24:
-            pin.inp_author = pin.inp_author[:24]
+        if not pin.inp_author is None:
+            if len(pin.inp_author) > 24:
+                pin.inp_author = pin.inp_author[:24]
+            header.author = sub(r'\s+', ' ', pin.inp_author.strip(),)
     
     def check_name_len():
-        if len(pin.inp_name) > 48:
-            pin.inp_name = pin.inp_name[:48]
+        if not pin.inp_author is None:
+            if len(pin.inp_name) > 48:
+                pin.inp_name = pin.inp_name[:48]
+            header.name = sub(r'\s+', ' ', pin.inp_name.strip(),)
+    
+    def check_loop_count():
+        if not pin.inp_loop_count is None:
+            if pin.inp_loop_count < 0:
+                pin.inp_loop_count = 0
+            if pin.inp_loop_count > 128:
+                pin.inp_loop_count = 128
+            header.loop_count = pin.inp_loop_count
 
-    def toggle_loop_inputs():
-        pass
+    def check_loop_start():
+        if not pin.inp_loop_start is None:
+            if pin.inp_loop_start < 0:
+                pin.inp_loop_start = 0
+            if pin.inp_loop_start > header.length:
+                pin.inp_loop_start = header.length
+            header.loop_start = pin.inp_loop_start
+
+    def toggle_loop():
+        if pin.rad_looping:
+            header.loop = True
+            with use_scope('input_looping_rad', clear=True):
+                put_input(
+                    name='inp_loop_count', label='Количество повторов',
+                    help_text='0 - бесконечно. Максимум 128 (а зачем больше?)',
+                    type=NUMBER, value=header.loop_count)
+                pin_on_change(
+                    'inp_loop_count', onchange=lambda _: check_loop_count(),
+                    clear=True, init_run=True,)
+                put_buttons(
+                    [  
+                        dict(label=i[0], value=i[1], color=i[2])  
+                        for i in [
+                            ['-', 'btn_loop_count_minus', 'danger'],
+                            ['+', 'btn_loop_count_plus', 'success'],
+                            ['По умолчанию', 'btn_loop_count_def', 'warning'],]  
+                    ],
+                    onclick=lambda value: button_actions(value), outline=True,)
+                
+                put_input(
+                    name='inp_loop_start', label='Тик начала повтора',
+                    help_text=f'Максимум {header.length}',
+                    type=NUMBER, value=header.loop_start)
+                pin_on_change(
+                    'inp_loop_start', onchange=lambda _: check_loop_start(),
+                    clear=True, init_run=True,)
+                put_buttons(
+                    [  
+                        dict(label=i[0], value=i[1], color=i[2])  
+                        for i in [
+                            ['-', 'btn_loop_start_minus', 'danger'],
+                            ['+', 'btn_loop_start_plus', 'success'],
+                            ['По умолчанию', 'btn_loop_start_def', 'warning']]  
+                    ],
+                    onclick=lambda value: button_actions(value), outline=True,)
+        else:
+            header.loop = False
+            clear('input_looping_rad')
 
     def button_actions(value):
         match value:
+            case 'btn_loop_count_minus':
+                pin.inp_loop_count -= 1
+                check_loop_count()
+            case 'btn_loop_count_plus':
+                pin.inp_loop_count += 1
+                check_loop_count()
+            case 'btn_loop_count_def':
+                pin.inp_loop_count = header.old_loop_count
+                check_loop_count()
+
+            case 'btn_loop_start_minus':
+                pin.inp_loop_start -= 1
+                check_loop_start()
+            case 'btn_loop_start_plus':
+                pin.inp_loop_start += 1
+                check_loop_start()
+            case 'btn_loop_start_def':
+                pin.inp_loop_start = header.old_loop_start
+                check_loop_count()
+
             case 'use_song_author':
-                pin.inp_author = nbs_data[0].old_author
+                pin.inp_author = header.old_author
                 with use_scope('input_author_btns', clear=True):
                     put_buttons(
                         [  
@@ -370,7 +452,7 @@ def edit_header_page(nbs_data: tuple[Header, list, list,]):
                         ],
                         onclick=lambda value: button_actions(value),)
             case 'use_origin_author':
-                pin.inp_author = nbs_data[0].old_original
+                pin.inp_author = header.old_original
                 with use_scope('input_author_btns', clear=True):
                     put_buttons(
                         [  
@@ -381,12 +463,11 @@ def edit_header_page(nbs_data: tuple[Header, list, list,]):
                             ]  
                         ],
                         onclick=lambda value: button_actions(value),)
+                    
             case 'btn_go_overview':
-                nbs_data[0].loop = pin.use_loop
-                nbs_data[0].loop
                 overview_page(nbs_data)
             case 'btn_go_back':
-                if nbs_data[0].old_tempo in TEMPO:
+                if header.old_tempo in TEMPO:
                     upload_page()
                 else:
                     fix_tempo_page(nbs_data)
@@ -395,11 +476,11 @@ def edit_header_page(nbs_data: tuple[Header, list, list,]):
         put_markdown('# Подготовка к публикации')
     
     with use_scope('content', clear=True):
-        put_markdown('Подтвердите или измените метаданные NBS файла')
+        put_markdown('### Здесь вы можете изменить параметры (заголовок) трека')
 
     with use_scope('inputs', clear=True):
         put_input(
-            'inp_author', label='Автор', value=nbs_data[0].author,
+            'inp_author', label='Автор', value=header.author, type=TEXT,
             help_text='Максимум 24 символа',)
         pin_on_change(
             'inp_author', onchange=lambda _: check_author_len(),
@@ -420,51 +501,42 @@ def edit_header_page(nbs_data: tuple[Header, list, list,]):
                 onclick=lambda value: button_actions(value),)
             
         put_input(
-            'inp_name', label='Название', value=nbs_data[0].name,
-            help_text='Максимум 48 символов')
+            'inp_name', label='Название', value=header.name, type=TEXT,
+            help_text='Максимум 48 символов',)
         pin_on_change(
             'inp_name', onchange=lambda _: check_name_len(),
             clear=True, init_run=True,)
 
-        if nbs_data[0].old_loop:
+        if header.old_loop:
             put_markdown("""
-                Было обнаружено, что трек использует лупинг (повторы).
+                #### Было обнаружено, что трек использует повторы (looping)
             """)
             put_radio(
                 name='rad_looping',
                 options=[
                     {
-                        "label": 'Использовать лупинг',
-                        "value": True,
+                        "label": 'Проигрывать один раз',
+                        "value": False,
                         "selected": True,
                     },
                     {
-                        "label": 'Проигрывать единожды',
-                        "value": False,
+                        "label": 'Повторять',
+                        "value": True,
                     },
                 ], 
                 inline=True,)
             
             put_scope('input_looping_rad')
-            with use_scope('input_looping_rad', clear=True):
-                put_input(
-                    name='inp_loop_count', type=NUMBER,
-                    value=nbs_data[0].loop_count)
-                put_input(
-                    name='inp_loop_start', type=NUMBER,
-                    value=nbs_data[0].loop_start)
             
             pin_on_change(
-                'rad_looping', onchange=lambda _: toggle_loop_inputs(),
+                'rad_looping', onchange=lambda _: toggle_loop(),
                 clear=True, init_run=True,)
-
-
-                
+            
         put_buttons(
             [  
                 dict(label=i[0], value=i[1], color=i[2])  
                 for i in [
-                    ['Продолжить', 'btn_go_overview', 'success'],
+                    ['Продолжить', 'btn_go_overview', 'primary'],
                     ['Назад', 'btn_go_back', 'danger'],
                 ]  
             ],
@@ -495,7 +567,7 @@ def parse_nbs_page(nbs_data: tuple[Header, list, list,]):
     
     req_headers = {
         'Accept': 'application/vnd.github+json',
-        'Authorization': f'Bearer {GITHUB_TOKEN}',
+        'Authorization': f'Bearer {GISTS_ACCESS_TOKEN}',
         'X-GitHub-Api-Version': '2022-11-28'
     }
 
