@@ -1,11 +1,15 @@
 class Main:
     LOGO = r'logo_ru_RU.png'
 
-    NO_PLAYLIST_GIST = r'# ОТСУТСТВУЕТ PLAYLIST_GIST В ПЕРЕМЕННЫХ СРЕДЫ'
+    NO_JUSTNBS_GIST_ID = r'# ОТСУТСТВУЕТ JUSTNBS_GIST_ID В ПЕРЕМЕННЫХ СРЕДЫ'
+
+    NO_PLAYLIST_RAW = r'# ОТСУТСТВУЕТ PLAYLIST_RAW В ПЕРЕМЕННЫХ СРЕДЫ'
+
+    NO_LATESTS_RAW = r'# ОТСУТСТВУЕТ LATESTS_RAW В ПЕРЕМЕННЫХ СРЕДЫ'
 
     NO_GITHUB_TOKEN = r'# ОТСУТСТВУЕТ GITHUB_TOKEN В ПЕРЕМЕННЫХ СРЕДЫ'
 
-    WRONG_GITHUB_TOKEN_FORMAT = r'# НЕВЕРНЫЙ ФОРМАТ GITHUB_TOKEN'
+    WRONG_GITHUB_TOKEN_FORMAT = r'# НЕВЕРНЫЙ ФОРМАТ ИЛИ ПОВРЕЖДЕН GITHUB_TOKEN'
 
 
 class IndexPage:

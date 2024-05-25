@@ -21,19 +21,23 @@ import asyncio
 from nbs_parser import TEMPO, get_metadata, parse, sepparate_data
 
 
-URL = 'https://api.github.com/gists'
-
 try:
-    PLAYLIST_GIST = environ['PLAYLIST_GIST']
+    JUSTNBS_GIST_ID = environ['JUSTNBS_GIST_ID']
     try:
-        GITHUB_TOKEN = environ['GITHUB_TOKEN']
+        PLAYLIST_RAW = environ['PLAYLIST_RAW']
+        try:
+            LATESTS_RAW = environ['LATESTS_RAW']
+            try:
+                GITHUB_TOKEN = environ['GITHUB_TOKEN']
+                API_URL = 'https://api.github.com/gists'
+            except:
+                GITHUB_TOKEN = None
+        except:
+            LATESTS_RAW = None
     except:
-        GITHUB_TOKEN = None
+        PLAYLIST_RAW = None
 except:
-    PLAYLIST_GIST = None
-
-
-#response: Optional[requests.Request] = None
+    JUSTNBS_GIST_ID = None
 
 
 # def request():
@@ -96,22 +100,25 @@ def main():
     }
     """)
 
-    if PLAYLIST_GIST is None:
-        put_markdown(lang.NO_PLAYLIST_GIST)
+    if JUSTNBS_GIST_ID is None:
+        put_markdown(lang.NO_JUSTNBS_GIST_ID)
+    elif PLAYLIST_RAW is None:
+        put_markdown(lang.NO_PLAYLIST_RAW)
+    elif LATESTS_RAW is None:
+        put_markdown(lang.NO_LATESTS_RAW)
+    elif GITHUB_TOKEN is None:
+        put_markdown(lang.NO_GITHUB_TOKEN)
+    elif not GITHUB_TOKEN.startswith('ghp_'):
+        put_markdown(lang.WRONG_GITHUB_TOKEN_FORMAT)
     else:
-        if GITHUB_TOKEN is None:
-            put_markdown(lang.NO_GITHUB_TOKEN)
-        elif not GITHUB_TOKEN.startswith('ghp_'):
-            put_markdown(lang.WRONG_GITHUB_TOKEN_FORMAT)
-        else:
-            try:
-                with use_scope('image', clear=True,):
-                    put_image(
-                        open(path.join('resources', lang.LOGO,), 'rb').read(),)
-            except:
-                with use_scope('image', clear=True,):
-                    put_markdown('# NO_IMAGE')
-            index_page()
+        try:
+            with use_scope('image', clear=True,):
+                put_image(
+                    open(path.join('resources', lang.LOGO,), 'rb').read(),)
+        except:
+            with use_scope('image', clear=True,):
+                put_markdown('# NO_IMAGE')
+        index_page()
 
 def index_page():
     lang = translate.IndexPage
