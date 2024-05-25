@@ -16,12 +16,12 @@ from requests import get as get_req, post as post_req, patch as patch_req
 from re import fullmatch
 
 from io import BytesIO
-from pynbs import Layer, Note
+from pynbs import Header
 
 import json
 
 from nbs_parser import (
-    TEMPO, NewHeader as Header, get_metadata, parse, sepparate_data
+    TEMPO, get_metadata, parse, sepparate_data#, NewHeader as Header
 )
 
 
@@ -229,7 +229,10 @@ def index_page():
                     [lang.B_SEARCH, 'search_page', 'primary'],]  
             ],
             onclick=lambda value: button_actions(value),)
-    
+
+def show_latests():
+    pass
+
 def upload_page():
     lang = translate.UploadPage
 
@@ -241,7 +244,7 @@ def upload_page():
 
     def button_actions(value):
         match value:
-            case 'upload_nbs':
+            case 'btn_upload':
                 if pin.uploaded_nbs is None:
                     toast(
                         content='Для начала, выберите файл',
@@ -254,10 +257,10 @@ def upload_page():
                             duration=3, color='red',
                         )
                     elif not nbs_data[0].tempo in TEMPO:
-                        edit_tempo_page(nbs_data)
+                        fix_tempo_page(nbs_data)
                     else:
                         edit_meta_page(nbs_data)
-            case 'index_page':
+            case 'btn_go_index':
                 index_page()
 
     with use_scope('title', clear=True,):
@@ -275,12 +278,12 @@ def upload_page():
             [  
                 dict(label=i[0], value=i[1], color=i[2])  
                 for i in [
-                    [lang.UPLOAD, 'upload_nbs', 'primary'],
-                    [lang.CANCEL, 'index_page', 'danger'],]  
+                    [lang.UPLOAD, 'btn_upload', 'primary'],
+                    [lang.CANCEL, 'btn_go_index', 'danger'],]  
             ],
             onclick=lambda value: button_actions(value),)
 
-def edit_tempo_page(nbs_data: tuple[Header, Note, Layer]):
+def fix_tempo_page(nbs_data: tuple[Header, list, list,]):
     lang = translate.EditTempoPage
 
     def button_actions(value):
@@ -302,29 +305,8 @@ def edit_tempo_page(nbs_data: tuple[Header, Note, Layer]):
             label=lang.PICK_TEMPO.replace('TEMPO', str(nbs_data[0].tempo),),
             name='new_tempo',
             options=[  
-                dict(label=i[0], value=i[1], selected=i[2])  
-                for i in [
-                    ['20.0 t/s', 20.0, None],
-                    ['10.0 t/s', 10.0, None],
-                    ['6.67 t/s', 6.67, None],
-                    ['5.0 t/s', 5.0, True],
-                    ['4.0 t/s', 4.0, None],
-                    ['3.33 t/s', 3.33, None],
-                    ['2.86 t/s', 2.86, None],
-                    ['2.5 t/s', 2.5, None],
-                    ['2.22 t/s', 2.22, None],
-                    ['2.0 t/s', 2.0, None],
-                    ['1.82 t/s', 1.82, False],
-                    ['1.67 t/s', 1.67, None],
-                    ['1.54 t/s', 1.54, None],
-                    ['1.43 t/s', 1.43, None],
-                    ['1.33 t/s', 1.33, None],
-                    ['1.25 t/s', 1.25, None],
-                    ['1.18 t/s', 1.18, None],
-                    ['1.11 t/s', 1.11, None],
-                    ['1.05 t/s', 1.05, None],
-                    ['1.0 t/s', 1.0, None],
-                ]  
+                dict(label=str(tempo)+r' t/s', value=tempo, selected=(idx == 0))
+                    for idx, tempo in enumerate(TEMPO)
             ],
         )
         put_buttons(
@@ -338,7 +320,7 @@ def edit_tempo_page(nbs_data: tuple[Header, Note, Layer]):
             onclick=lambda value: button_actions(value)
         )
 
-def edit_meta_page(nbs_data: tuple[Header, list[Note], list[Layer],]):
+def edit_meta_page(nbs_data: tuple[Header, list, list,]):
     def button_actions(value):
         match value:
             case 'use_song_author':
@@ -347,7 +329,7 @@ def edit_meta_page(nbs_data: tuple[Header, list[Note], list[Layer],]):
                 pin.author = nbs_data[0].original_author
             case 'send':
                 nbs_data[0].loop = pin.use_loop
-                send_page(nbs_data)
+                parse_nbs_page(nbs_data)
             case 'upload_page':
                 upload_page()
 
@@ -410,7 +392,10 @@ def edit_meta_page(nbs_data: tuple[Header, list[Note], list[Layer],]):
             onclick=lambda value: button_actions(value)
         )
 
-def send_page(nbs_data: tuple[Header, list[Note], list[Layer],]):
+def overview_page(nbs_data: tuple[Header, list, list,]):
+    pass
+
+def parse_nbs_page(nbs_data: tuple[Header, list, list,]):
     with use_scope('title', clear=True):
         put_markdown('# Отправка трек в GitHub')
     
@@ -532,7 +517,12 @@ def send_page(nbs_data: tuple[Header, list[Note], list[Layer],]):
     #             put_buttons(['Не OK :с'], onclick=lambda _: close_popup()),
     #             put_markdown(str(response.status_code))
     #         ])
-        
+
+def publish_page(SOME_PARSED_DATA): # FIXME
+    pass
+
+def show_published_track():
+    pass
 
 # def show_latests_table():
 #     with use_scope('latest_tracks', clear=True):
@@ -586,3 +576,4 @@ def send_page(nbs_data: tuple[Header, list[Note], list[Layer],]):
 
 if __name__ == '__main__':
     start_server(main, host='127.0.0.1', port=8000)
+    

@@ -8,7 +8,7 @@ from typing import Optional, Union
 from dataclasses import dataclass
 
 from io import BytesIO
-from pynbs import Header, Layer, Note
+from pynbs import Layer, Note, Header
 
 import pynbs
 import json
@@ -19,10 +19,10 @@ TEMPO = (
     3.33, 2.86, 2.5, 2.22, 2.0,
     1.82, 1.67, 1.54, 1.43, 1.33,
     1.25, 1.18, 1.11, 1.05, 1.0,
-    # 0.95, 0.91, 0.87, 0.83, 0.8,
-    # 0.77, 0.74, 0.71, 0.69, 0.67,
-    # 0.65, 0.62, 0.61, 0.59, 0.57,
-    # 0.56, 0.54, 0.53, 0.51, 0.5,
+    0.95, 0.91, 0.87, 0.83, 0.8,
+    0.77, 0.74, 0.71, 0.69, 0.67,
+    0.65, 0.62, 0.61, 0.59, 0.57,
+    0.56, 0.54, 0.53, 0.51, 0.5,
 )
 
 NOTE_BLOCK_VAR = 'block.note_block.'
@@ -47,17 +47,21 @@ BASE_INSTRUMENTS = (
 )
 
 
-@dataclass
-class NewHeader:
-    song_author: str
-    original_author: str
-    song_name: str
-    song_duration: int
-    song_length: int
-    tempo: float
-    loop: bool
-    max_loop_count: int
-    loop_start: int
+# @dataclass
+# class Header:
+#     author: str
+#     name: str
+#     tick_delay: int
+#     loop: bool
+#     loop_count: int
+#     loop_start: int
+    
+#     song_author: str
+#     original_author: str
+#     song_name: str
+#     song_duration: int
+#     song_length: int
+#     tempo: float
 
 
 def get_metadata(nbs_file: BytesIO) -> Union[
@@ -71,6 +75,20 @@ def get_metadata(nbs_file: BytesIO) -> Union[
         return 'WRONG_OR_CORRUPTED'
     
     header = nbs_data.header
+
+    # header = Header(
+    #     author=old.song_author,
+    #     name=old.song_name,
+    #     tick_delay=TEMPO.index(old.tempo) + 1,
+    #     loop=old.loop,
+    #     loop_count=old.max_loop_count,
+    #     loop_start=old.loop_start,
+
+    #     song_author=old.song_author,
+    #     original_author=old.original_author,
+    #     song_name=old.song_name,
+
+    # )
 
     #length = header.song_length * (TEMPO.index(header.tempo) + 1)
     #duration = str(datetime.timedelta(seconds=length // 20))
