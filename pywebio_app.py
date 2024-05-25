@@ -532,54 +532,6 @@ def send_page(nbs_data: tuple[Header, list[Note], list[Layer],]):
     #             put_buttons(['Не OK :с'], onclick=lambda _: close_popup()),
     #             put_markdown(str(response.status_code))
     #         ])
-
-# # TODO
-# def add_lyrics_page(nbs_data):
-#     def button_actions(value):
-#         match value:
-#             case 'upload_nbs':
-#                 if pin.uploaded_nbs is None:
-#                     toast(
-#                         content='Для начала, выберите файл',
-#                         duration=3, color='info',
-#                     )
-#                 else:
-#                     nbs_data = get_metadata(BytesIO(pin.uploaded_nbs['content']))
-#                     if isinstance(nbs_data, str):
-#                         toast(
-#                             content=str(nbs_data),
-#                             duration=3, color='red',
-#                         )
-#                     elif not nbs_data[0].tempo in TEMPO:
-#                         edit_tempo_page(nbs_data)
-#                     else:
-#                         edit_meta_page(nbs_data)
-
-#             case 'index_page':
-#                 index_page()
-
-#     with use_scope('title', clear=True):
-#         put_markdown('# Выберите файл для загрузки')
-    
-#     with use_scope('content', clear=True):
-#         put_markdown('правила загрузки')
-    
-#     with use_scope('inputs', clear=True):
-#         put_file_upload(
-#             name='uploaded_nbs', accept=".nbs",
-#             max_size='250K', placeholder='Выбери NBS файл для загрузки',
-#             help_text='hello'
-#         )
-#         put_buttons(
-#             [  
-#                 dict(label=i[0], value=i[1], color=i[2])  
-#                 for i in [
-#                     ['Загрузить', 'upload_nbs', 'primary'],
-#                     ['Отмена', 'index_page', 'danger']
-#                 ]  
-#             ],
-#             onclick=lambda value: button_actions(value)
-#         )
         
 
 # def show_latests_table():
