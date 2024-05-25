@@ -19,7 +19,6 @@ from io import BytesIO
 from pynbs import Layer, Note
 
 import json
-import time
 
 from nbs_parser import (
     TEMPO, NewHeader as Header, get_metadata, parse, sepparate_data
@@ -109,21 +108,20 @@ def main():
         check_token()
 
 def check_token():
-    lang = translate.CheckToken
+    lang = translate.Main
 
     test_token = get_req(url=API_URL[:-6]+'user', headers=REQ_HEADERS)
+
     if test_token.status_code == 403:
-        with use_scope('title', clear=True):
-            put_markdown(lang.REACHED_API_LIMIT)
-        with use_scope('content', clear=True):
-            put_markdown(lang.API_LIMIT_CONTACT_WITH_ME)
-        with use_scope('inputs', clear=True):
-            pass
+        remove('title')
+        remove('content')
+        remove('inputs')
+        put_markdown(lang.REACHED_API_LIMIT)
     elif test_token.status_code != 200:
-        with use_scope('title', clear=True):
-            put_markdown(lang.INVALID_GISTS_ACCESS_TOKEN)
-        with use_scope('content', clear=True):
-            put_markdown(lang.CONTACT_WITH_ME)
+        remove('title')
+        remove('content')
+        remove('inputs')
+        put_markdown(lang.INVALID_GISTS_ACCESS_TOKEN)
     
 def index_page():
     lang = translate.IndexPage

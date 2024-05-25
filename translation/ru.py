@@ -6,32 +6,29 @@ class Main:
     TAB_TITLE = r'JustNBS Плеер'
     LOGO = r'logo_ru.jpg'
 
-    NO_JUSTNBS_GIST_ID = r'# ОТСУТСТВУЕТ JUSTNBS_GIST_ID В ПЕРЕМЕННЫХ СРЕДЫ'
-    WRONG_JUSTNBS_GIST_ID_FORMAT = r'# НЕВЕРНЫЙ ФОРМАТ ИЛИ ПОВРЕЖДЕН JUSTNBS_GIST_ID'
+    CONTACT_WITH_ME = """
+        ### Свяжитесь с @AMD Boii [в Discord](https://discord.justmc.ru/) либо на сервере JustMC.
+    """
 
-    NO_ACTUAL_PLAYLIST_RAW = r'# ОТСУТСТВУЕТ ACTUAL_PLAYLIST_RAW В ПЕРЕМЕННЫХ СРЕДЫ'
-    WRONG_ACTUAL_PLAYLIST_RAW_FORMAT = r'# НЕВЕРНЫЙ ФОРМАТ ИЛИ ПОВРЕЖДЕН ACTUAL_PLAYLIST_RAW'
+    NO_JUSTNBS_GIST_ID = r'# ОТСУТСТВУЕТ JUSTNBS_GIST_ID В ПЕРЕМЕННЫХ СРЕДЫ' + CONTACT_WITH_ME
+    WRONG_JUSTNBS_GIST_ID_FORMAT = r'# НЕВЕРНЫЙ ФОРМАТ ИЛИ ПОВРЕЖДЕН JUSTNBS_GIST_ID' + CONTACT_WITH_ME
 
-    NO_LATEST_TRACKS_RAW = r'# ОТСУТСТВУЕТ LATESTS_RAW В ПЕРЕМЕННЫХ СРЕДЫ'
-    WRONG_LATEST_TRACKS_RAW_FORMAT = r'# НЕВЕРНЫЙ ФОРМАТ ИЛИ ПОВРЕЖДЕН LATESTS_RAW'
+    NO_ACTUAL_PLAYLIST_RAW = r'# ОТСУТСТВУЕТ ACTUAL_PLAYLIST_RAW В ПЕРЕМЕННЫХ СРЕДЫ' + CONTACT_WITH_ME
+    WRONG_ACTUAL_PLAYLIST_RAW_FORMAT = r'# НЕВЕРНЫЙ ФОРМАТ ИЛИ ПОВРЕЖДЕН ACTUAL_PLAYLIST_RAW' + CONTACT_WITH_ME
 
-    NO_GISTS_ACCESS_TOKEN = r'# ОТСУТСТВУЕТ GISTS_ACCESS_TOKEN В ПЕРЕМЕННЫХ СРЕДЫ'
-    WRONG_GISTS_ACCESS_TOKEN_FORMAT = r'# НЕВЕРНЫЙ ФОРМАТ ИЛИ ПОВРЕЖДЕН GISTS_ACCESS_TOKEN'
+    NO_LATEST_TRACKS_RAW = r'# ОТСУТСТВУЕТ LATESTS_RAW В ПЕРЕМЕННЫХ СРЕДЫ' + CONTACT_WITH_ME
+    WRONG_LATEST_TRACKS_RAW_FORMAT = r'# НЕВЕРНЫЙ ФОРМАТ ИЛИ ПОВРЕЖДЕН LATESTS_RAW' + CONTACT_WITH_ME
 
+    NO_GISTS_ACCESS_TOKEN = r'# ОТСУТСТВУЕТ GISTS_ACCESS_TOKEN В ПЕРЕМЕННЫХ СРЕДЫ' + CONTACT_WITH_ME
+    WRONG_GISTS_ACCESS_TOKEN_FORMAT = r'# НЕВЕРНЫЙ ФОРМАТ ИЛИ ПОВРЕЖДЕН GISTS_ACCESS_TOKEN' + CONTACT_WITH_ME
 
-class CheckToken:
-    INVALID_GISTS_ACCESS_TOKEN = r'# НЕДЕЙСТВИТЕЛЬНЫЙ GISTS_ACCESS_TOKEN'
+    INVALID_GISTS_ACCESS_TOKEN = r'# НЕДЕЙСТВИТЕЛЬНЫЙ GISTS_ACCESS_TOKEN' + CONTACT_WITH_ME
 
-    REACHED_API_LIMIT = r'# ДОСТИГНУТ ЛИМИТ ЗАПРОСОВ К GITHUB API'
-    API_LIMIT_CONTACT_WITH_ME = """
+    REACHED_API_LIMIT = """
+        # ДОСТИГНУТ ЛИМИТ ЗАПРОСОВ К GITHUB API'
         ### Вероятно, какая-то бяка решила нам нагадить 🤬.
         ### Попробуйте вернуться позднее, когда GitHub сбросит часовой лимит.
         ### Иначе, свяжитесь с @AMD Boii [в Discord](https://discord.justmc.ru/) либо на сервере JustMC.
-        
-    """
-    
-    CONTACT_WITH_ME = """
-        ### Свяжитесь с @AMD Boii [в Discord](https://discord.justmc.ru/) либо на сервере JustMC.
     """
 
 
