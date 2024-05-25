@@ -1,14 +1,17 @@
 class Main:
-    LOGO = r'logo_ru_RU.png'
+    TAB_TITLE = r'JustNBS Плеер'
+    LOGO = r'logo_ru.jpg'
 
     NO_JUSTNBS_GIST_ID = r'# ОТСУТСТВУЕТ JUSTNBS_GIST_ID В ПЕРЕМЕННЫХ СРЕДЫ'
+    WRONG_JUSTNBS_GIST_ID_FORMAT = r'# НЕВЕРНЫЙ ФОРМАТ ИЛИ ПОВРЕЖДЕН JUSTNBS_GIST_ID'
 
     NO_PLAYLIST_RAW = r'# ОТСУТСТВУЕТ PLAYLIST_RAW В ПЕРЕМЕННЫХ СРЕДЫ'
+    WRONG_PLAYLIST_RAW_FORMAT = r'# НЕВЕРНЫЙ ФОРМАТ ИЛИ ПОВРЕЖДЕН PLAYLIST_RAW'
 
     NO_LATESTS_RAW = r'# ОТСУТСТВУЕТ LATESTS_RAW В ПЕРЕМЕННЫХ СРЕДЫ'
+    WRONG_LATESTS_RAW_FORMAT = r'# НЕВЕРНЫЙ ФОРМАТ ИЛИ ПОВРЕЖДЕН LATESTS_RAW'
 
     NO_GITHUB_TOKEN = r'# ОТСУТСТВУЕТ GITHUB_TOKEN В ПЕРЕМЕННЫХ СРЕДЫ'
-
     WRONG_GITHUB_TOKEN_FORMAT = r'# НЕВЕРНЫЙ ФОРМАТ ИЛИ ПОВРЕЖДЕН GITHUB_TOKEN'
 
 
@@ -54,6 +57,8 @@ class IndexPage:
 
 
 class UploadPage:
+    REFRESH_WARNING = r'Вы уверены, что хотите покинуть эту страницу?'
+
     CHOOSE_FILE = r'# Выберите файл для загрузки'
 
     UPLOAD_RULES = r'правила загрузки'
@@ -76,7 +81,7 @@ class EditTempoPage:
     """
 
     # Select
-    PICK_TEMPO = f'Выберите поддерживаемый темп (исходный темп TEMPO t/s)'
+    PICK_TEMPO = r'Выберите поддерживаемый темп (исходный темп TEMPO t/s)'
 
     # Buttons
     ACCEPT = r'Подтвердить'

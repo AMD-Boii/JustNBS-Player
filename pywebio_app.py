@@ -10,9 +10,8 @@ from pywebio.session import set_env, info as session_info, run_js
 from threading import Thread
 from os import environ, path
 from io import BytesIO
-#from requests import get as req_get, post as req_post
-
-import requests
+from requests import get as req_get, post as req_post, patch as req_patch
+from re import fullmatch
 
 import requests
 import json
@@ -40,53 +39,21 @@ except:
     JUSTNBS_GIST_ID = None
 
 
-# def request():
-#     headers = {
-#         'Accept': 'application/vnd.github+json',
-#         'Authorization': f'Bearer {TOKEN}',
-#         'X-GitHub-Api-Version': '2022-11-28'
-#     }
-
-#     content = json.dumps(
-#         {
-#             "C418": {
-#                 "Sweeden":{
-#                     "duration": 4643,
-#                     "id": 'rsd34tt4t8hrvu',
-#                     "file_amount": 2
-#                 }
-#             }
-#         }, 
-#     )
-
-#     new_content = {
-#         "files": {
-#             "playlist.json": {
-#                 "content": content,
-#             }
-#         }
-#     }
-    
-#     global response
-#     response = requests.patch(
-#         url=URL, headers=headers, data=json.dumps(new_content)
-#     )
-#     print(URL, headers, new_content) 
-
 @config(theme='dark')
 def main():
     global translate
 
-    if session_info.user_language == 'ru-RU':
-        import translation.ru_RU as translate
-        #import translation.en_EN as lang
+    if session_info.user_language == 'ru':
+        import translation.ru as translate
     else:
-        #import translation.en_EN as lang
-        import translation.ru_RU as translate
+        import translation.en as translate
+
+    # ЗАГЛУШКА ДЛЯ РАЗРАБОТКИ
+    import translation.ru as translate
 
     lang = translate.Main
 
-    set_env(title='JustNBS Player DataBase',)
+    set_env(title=lang.TAB_TITLE)
     
     put_scope('image', position=0,)
     put_scope('title', position=1,)
@@ -94,22 +61,26 @@ def main():
     put_scope('inputs', position=3,)
     put_scope('latest_tracks', position=4,)
 
-    run_js("""
-    window.onbeforeunload = function() {
-        return "Вы уверены, что хотите покинуть эту страницу?";
-    }
-    """)
-
     if JUSTNBS_GIST_ID is None:
         put_markdown(lang.NO_JUSTNBS_GIST_ID)
+    elif not bool(fullmatch(r'[0-9a-f]{32}', JUSTNBS_GIST_ID),):
+        put_markdown(lang.WRONG_JUSTNBS_GIST_ID_FORMAT)
+
     elif PLAYLIST_RAW is None:
         put_markdown(lang.NO_PLAYLIST_RAW)
+    elif not PLAYLIST_RAW.startswith(r'https://gist.github.com/'):
+        put_markdown(lang.WRONG_PLAYLIST_RAW_FORMAT)
+
     elif LATESTS_RAW is None:
         put_markdown(lang.NO_LATESTS_RAW)
+    elif not LATESTS_RAW.startswith(r'https://gist.github.com/'):
+        put_markdown(lang.WRONG_LATESTS_RAW_FORMAT)
+
     elif GITHUB_TOKEN is None:
         put_markdown(lang.NO_GITHUB_TOKEN)
-    elif not GITHUB_TOKEN.startswith('ghp_'):
+    elif not GITHUB_TOKEN.startswith(r'ghp_'):
         put_markdown(lang.WRONG_GITHUB_TOKEN_FORMAT)
+        
     else:
         try:
             with use_scope('image', clear=True,):
@@ -122,6 +93,8 @@ def main():
 
 def index_page():
     lang = translate.IndexPage
+
+    run_js(r"window.onbeforeunload = null")
 
     def buttons_action(value):
         match value:
@@ -227,6 +200,12 @@ def index_page():
     
 def upload_page():
     lang = translate.UploadPage
+
+    run_js(r"""
+    window.onbeforeunload = function() {
+        return "WARNING";
+    }
+    """.replace('WARNING', lang.REFRESH_WARNING),)
 
     def buttons_action(value):
         match value:
