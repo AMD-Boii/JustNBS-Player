@@ -1,3 +1,7 @@
+# Released under the MIT License. See LICENSE for details.
+#
+"""PyWebIO app."""
+
 from __future__ import annotations
 from typing import Any, Optional, Union
 

@@ -1,3 +1,7 @@
+# Released under the MIT License. See LICENSE for details.
+#
+"""Русская локализация."""
+
 class Main:
     TAB_TITLE = r'JustNBS Плеер'
     LOGO = r'logo_ru.jpg'

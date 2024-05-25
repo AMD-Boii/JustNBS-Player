@@ -1,3 +1,7 @@
+# Released under the MIT License. See LICENSE for details.
+#
+"""English locatization."""
+
 class Main:
     LOGO = r'logo_en.jpg'
 

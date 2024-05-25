@@ -1,3 +1,7 @@
+# Released under the MIT License. See LICENSE for details.
+#
+"""Parser."""
+
 from __future__ import annotations
 from typing import Optional, Union
 
