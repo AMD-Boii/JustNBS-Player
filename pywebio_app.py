@@ -11,16 +11,15 @@ from pywebio.output import *
 from pywebio.pin import *
 from pywebio.session import set_env, info as session_info, run_js
 
-from threading import Thread
 from os import environ, path
-from requests import get as req_get, post as req_post, patch as req_patch
+from requests import get as get_req, post as post_req, patch as patch_req
 from re import fullmatch
 
 from io import BytesIO
 from pynbs import Layer, Note
 
-import requests
 import json
+import time
 
 from nbs_parser import (
     TEMPO, NewHeader as Header, get_metadata, parse, sepparate_data
@@ -34,10 +33,15 @@ try:
         try:
             LATEST_TRACKS_RAW = environ['LATEST_TRACKS_RAW']
             try:
-                GITHUB_TOKEN = environ['GITHUB_TOKEN']
-                API_URL = 'https://api.github.com/gists'
+                GISTS_ACCESS_TOKEN = environ['GISTS_ACCESS_TOKEN']
+                API_URL = 'https://api.github.com/gists/'
+                REQ_HEADERS = {
+                    'Accept': 'application/vnd.github+json',
+                    'Authorization': f'Bearer {GISTS_ACCESS_TOKEN}',
+                    'X-GitHub-Api-Version': '2022-11-28',
+                }
             except:
-                GITHUB_TOKEN = None
+                GISTS_ACCESS_TOKEN = None
         except:
             LATEST_TRACKS_RAW = None
     except:
@@ -87,13 +91,12 @@ def main():
     elif not JUSTNBS_GIST_ID in LATEST_TRACKS_RAW:
         put_markdown(lang.WRONG_LATEST_TRACKS_RAW_FORMAT)
 
-    elif GITHUB_TOKEN is None:
-        put_markdown(lang.NO_GITHUB_TOKEN)
-    elif not GITHUB_TOKEN.startswith(r'ghp_'):
-        put_markdown(lang.WRONG_GITHUB_TOKEN_FORMAT)
-    elif not bool(fullmatch(r'[0-9a-fA-F]{36}', GITHUB_TOKEN[4:]),):
-        put_markdown(lang.WRONG_GITHUB_TOKEN_FORMAT)
-        
+    elif GISTS_ACCESS_TOKEN is None:
+        put_markdown(lang.NO_GISTS_ACCESS_TOKEN)
+    elif not GISTS_ACCESS_TOKEN.startswith(r'ghp_'):
+        put_markdown(lang.WRONG_GISTS_ACCESS_TOKEN_FORMAT)
+    elif not bool(fullmatch(r'[0-9a-zA-Z]{36}', GISTS_ACCESS_TOKEN[4:]),):
+        put_markdown(lang.WRONG_GISTS_ACCESS_TOKEN_FORMAT)
     else:
         try:
             with use_scope('image', clear=True,):
@@ -103,13 +106,31 @@ def main():
             with use_scope('image', clear=True,):
                 put_markdown('# NO_IMAGE')
         index_page()
+        check_token()
 
+def check_token():
+    lang = translate.CheckToken
+
+    test_token = get_req(url=API_URL[:-6]+'user', headers=REQ_HEADERS)
+    if test_token.status_code == 403:
+        with use_scope('title', clear=True):
+            put_markdown(lang.REACHED_API_LIMIT)
+        with use_scope('content', clear=True):
+            put_markdown(lang.API_LIMIT_CONTACT_WITH_ME)
+        with use_scope('inputs', clear=True):
+            pass
+    elif test_token.status_code != 200:
+        with use_scope('title', clear=True):
+            put_markdown(lang.INVALID_GISTS_ACCESS_TOKEN)
+        with use_scope('content', clear=True):
+            put_markdown(lang.CONTACT_WITH_ME)
+    
 def index_page():
     lang = translate.IndexPage
 
     run_js(r"window.onbeforeunload = null")
 
-    def buttons_action(value):
+    def button_actions(value):
         match value:
             case 'upload_page':
                 upload_page()
@@ -152,7 +173,7 @@ def index_page():
                             for i in [
                                 [lang.B_GHUB_REPO, 'github_repo', 'info'],]  
                         ],
-                        onclick=lambda value: buttons_action(value),),
+                        onclick=lambda value: button_actions(value),),
                 ],
             },
             {
@@ -165,7 +186,7 @@ def index_page():
                             for i in [
                                 [lang.B_RES_LINK, 'res_pack', 'info'],]  
                         ],
-                        onclick=lambda value: buttons_action(value),),
+                        onclick=lambda value: button_actions(value),),
                 ],
             },
             {
@@ -183,7 +204,7 @@ def index_page():
                             for i in [
                                 [lang.B_REFRESH, 'refresh_recent', 'info'],]  
                         ],
-                        onclick=lambda value: buttons_action(value),),
+                        onclick=lambda value: button_actions(value),),
                 ],
             },
             {
@@ -196,7 +217,7 @@ def index_page():
                             for i in [
                                 [lang.B_DOWN_ONBS, 'onbs_download', 'danger'],]  
                         ],
-                        onclick=lambda value: buttons_action(value),),
+                        onclick=lambda value: button_actions(value),),
                 ],
             },],
         )
@@ -209,7 +230,7 @@ def index_page():
                     [lang.B_UPLOAD, 'upload_page', 'primary'],
                     [lang.B_SEARCH, 'search_page', 'primary'],]  
             ],
-            onclick=lambda value: buttons_action(value),)
+            onclick=lambda value: button_actions(value),)
     
 def upload_page():
     lang = translate.UploadPage
@@ -220,7 +241,7 @@ def upload_page():
     }
     """.replace('WARNING', lang.REFRESH_WARNING),)
 
-    def buttons_action(value):
+    def button_actions(value):
         match value:
             case 'upload_nbs':
                 if pin.uploaded_nbs is None:
@@ -259,12 +280,12 @@ def upload_page():
                     [lang.UPLOAD, 'upload_nbs', 'primary'],
                     [lang.CANCEL, 'index_page', 'danger'],]  
             ],
-            onclick=lambda value: buttons_action(value),)
+            onclick=lambda value: button_actions(value),)
 
 def edit_tempo_page(nbs_data: tuple[Header, Note, Layer]):
     lang = translate.EditTempoPage
 
-    def buttons_action(value):
+    def button_actions(value):
         match value:
             case 'edit_meta_page':
                 nbs_data[0].tempo = pin.new_tempo
@@ -316,11 +337,11 @@ def edit_tempo_page(nbs_data: tuple[Header, Note, Layer]):
                     [lang.CANCEL, 'upload_page', 'danger'],
                 ]  
             ],
-            onclick=lambda value: buttons_action(value)
+            onclick=lambda value: button_actions(value)
         )
 
 def edit_meta_page(nbs_data: tuple[Header, list[Note], list[Layer],]):
-    def buttons_action(value):
+    def button_actions(value):
         match value:
             case 'use_song_author':
                 pin.author = nbs_data[0].song_author
@@ -351,7 +372,7 @@ def edit_meta_page(nbs_data: tuple[Header, list[Note], list[Layer],]):
                     ['Original song author', 'use_origin_author', 'danger']
                 ]  
             ],
-            onclick=lambda value: buttons_action(value),)
+            onclick=lambda value: button_actions(value),)
         put_input(
             'song_name', label='Название', value=nbs_data[0].song_name,
             help_text='Максимум 32 символа')
@@ -388,7 +409,7 @@ def edit_meta_page(nbs_data: tuple[Header, list[Note], list[Layer],]):
                     ['Отмена', 'upload_page', 'danger'],
                 ]  
             ],
-            onclick=lambda value: buttons_action(value)
+            onclick=lambda value: button_actions(value)
         )
 
 def send_page(nbs_data: tuple[Header, list[Note], list[Layer],]):
@@ -516,7 +537,7 @@ def send_page(nbs_data: tuple[Header, list[Note], list[Layer],]):
 
 # # TODO
 # def add_lyrics_page(nbs_data):
-#     def buttons_action(value):
+#     def button_actions(value):
 #         match value:
 #             case 'upload_nbs':
 #                 if pin.uploaded_nbs is None:
@@ -559,7 +580,7 @@ def send_page(nbs_data: tuple[Header, list[Note], list[Layer],]):
 #                     ['Отмена', 'index_page', 'danger']
 #                 ]  
 #             ],
-#             onclick=lambda value: buttons_action(value)
+#             onclick=lambda value: button_actions(value)
 #         )
         
 

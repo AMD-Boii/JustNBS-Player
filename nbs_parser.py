@@ -109,7 +109,11 @@ def parse(length: int,
                     if pitch_octave is None: continue
                     
                     element = [
-                        NOTE_BLOCK_VAR + BASE_INSTRUMENTS[note.instrument] + pitch_octave[1],
+                        (
+                            NOTE_BLOCK_VAR + 
+                            BASE_INSTRUMENTS[note.instrument] + 
+                            pitch_octave[1]
+                        ),
                         pitch_octave[0],
                         volume[0],
                         volume[1]
