@@ -8,11 +8,9 @@ from typing import Optional, Union
 from dataclasses import dataclass
 
 from io import BytesIO
-from pynbs import Layer, Note#, Header
+from pynbs import Layer, Note, Parser, Instrument
 
-import pynbs
 import json
-import datetime
 
 TEMPO = (
     20.0, 10.0, 6.67, 5.0, 4.0,
@@ -22,38 +20,36 @@ TEMPO = (
     0.95, 0.91, 0.87, 0.83, 0.8,
     0.77, 0.74, 0.71, 0.69, 0.67,
     0.65, 0.62, 0.61, 0.59, 0.57,
-    0.56, 0.54, 0.53, 0.51, 0.5,
-)
-
-NOTE_BLOCK_VAR = 'block.note_block.'
+    0.56, 0.54, 0.53, 0.51, 0.5,)
 
 BASE_INSTRUMENTS = (
-    'harp',
-    'bass',
-    'basedrum',
-    'snare',
-    'hat',
-    'guitar',
-    'flute',
-    'bell',
-    'chime',
-    'xylophone',
-    'iron_xylophone',
-    'cow_bell',
-    'didgeridoo',
-    'bit',
-    'banjo',
-    'pling',
-)
+    'block.note_block.harp',
+    'block.note_block.bass',
+    'block.note_block.basedrum',
+    'block.note_block.snare',
+    'block.note_block.hat',
+    'block.note_block.guitar',
+    'block.note_block.flute',
+    'block.note_block.bell',
+    'block.note_block.chime',
+    'block.note_block.xylophone',
+    'block.note_block.iron_xylophone',
+    'block.note_block.cow_bell',
+    'block.note_block.didgeridoo',
+    'block.note_block.bit',
+    'block.note_block.banjo',
+    'block.note_block.pling',)
 
 
 @dataclass
 class Header:
     author: str
     name: str
-    duration: int
-    tick_delay: int
+    tempo: float
     length: int
+    tick_delay: int
+    duration: int
+    duration_string: str 
     loop: bool
     loop_count: int
     loop_start: int
@@ -67,25 +63,40 @@ class Header:
     old_loop_start: int
 
 
-def get_metadata(nbs_file: BytesIO) -> Union[
-    tuple[Header, list[Note], list[Layer],], str]:
-    '''
-    FIXME
-    '''
+def get_duration_string(seconds) -> str:
+    minutes = seconds // 60
+    remaining_seconds = seconds % 60
+    return '{}:{:02d}'.format(minutes, remaining_seconds)
+
+# def get_metadata(nbs_file: BytesIO) -> Union[
+#     tuple[Header, list[Note], list[Layer],], str]:
+def get_nbs_data(nbs_file: BytesIO) -> Optional[tuple[Header, 
+                                                      list[Note], 
+                                                      list[Layer],],]:
+                                                    #   Optional[
+                                                    #       list[Instrument],] 
+    """
+    TODO
+    """
     try:
-        nbs_data = pynbs.Parser(nbs_file).read_file()
+        nbs_data = Parser(nbs_file).read_file()
     except Exception:
-        return 'WRONG_OR_CORRUPTED'
+        return None
     
     old = nbs_data.header
+
+    seconds = (TEMPO.index(old.tempo)+1)*old.song_length//20 if (
+        old.tempo in TEMPO) else 0
 
     header = Header(
         author=old.song_author,
         name=old.song_name,
-        duration=(TEMPO.index(old.tempo)+1)*old.song_length if old.tempo in TEMPO else 0,
-        tick_delay=TEMPO.index(old.tempo)+1 if old.tempo in TEMPO else 0,
+        tempo=old.tempo,
         length=old.song_length,
-        loop=old.loop,
+        tick_delay=TEMPO.index(old.tempo)+1 if (old.tempo in TEMPO) else 0,
+        duration=seconds,
+        duration_string=get_duration_string(seconds),
+        loop=False,
         loop_count=old.max_loop_count,
         loop_start=old.loop_start,
 
@@ -95,31 +106,29 @@ def get_metadata(nbs_file: BytesIO) -> Union[
         old_tempo=old.tempo,
         old_loop=old.loop,
         old_loop_count=old.max_loop_count,
-        old_loop_start=old.loop_start,
-    )
+        old_loop_start=old.loop_start,)
 
-    #length = header.song_length * (TEMPO.index(header.tempo) + 1)
-    #duration = str(datetime.timedelta(seconds=length // 20))
-
-    notes = nbs_data.notes
-    layers = nbs_data.layers
-
-    return header, notes, layers
+    return header, nbs_data.notes, nbs_data.layers
 
 def parse(length: int,
-          tempo: int,
-          notes: list[pynbs.Note],
-          layers: list[pynbs.Layer]) -> Union[list[Union[list, int]], str]:
-    '''
-    Parses NBS data (notes, layers) and outputs a list of\n
-    JSON-ready list that contains lists of every single\n
-    note parameters and delays.
-    '''
+          tick_delay: int,
+          notes: list[Note],
+          layers: list[Layer],
+          loop_start: int = 0,
+          loop: bool = False,) -> Union[list[Union[list, int, str]], str]:
+    """
+    TODO
+    """
     try:
         last_note_id = 0
         sequence = []
 
         for tick in range(length):
+            if loop:
+                if tick == loop_start:
+                    sequence.append('LOOP')
+                    loop = False # Cycle optimization
+
             for note_id in range(last_note_id, len(notes)):
                 last_note_id = note_id
                 note = notes[note_id]
@@ -127,42 +136,36 @@ def parse(length: int,
                     
                 if note.tick == tick:
                     if layer.lock: continue
-                    volume = set_volume(
+                    octave_pitch = get_octave_pitch(note.key, note.pitch)
+                    if octave_pitch is None: continue
+                    volume = get_volume(
                         note.velocity, layer.volume,
-                        note.panning, layer.panning
-                    )
-                    pitch_octave = set_pitch_octave(note.key, note.pitch)
-                    if pitch_octave is None: continue
+                        note.panning, layer.panning,)
                     
                     element = [
-                        (
-                            NOTE_BLOCK_VAR + 
-                            BASE_INSTRUMENTS[note.instrument] + 
-                            pitch_octave[1]
-                        ),
-                        pitch_octave[0],
+                        BASE_INSTRUMENTS[note.instrument] + octave_pitch[0],
+                        octave_pitch[1],
                         volume[0],
-                        volume[1]
-                    ]
+                        volume[1],]
                     
                     sequence.append(element)
                     
                 else:
                     if type(sequence[-1]) is int:
-                        sequence[-1] += tempo #TEMPO[header.tempo]
+                        sequence[-1] += tick_delay
                     else:
-                        sequence.append(tempo) #TEMPO[header.tempo])
+                        sequence.append(tick_delay)
                     break
         
         return sequence
     
-    except Exception as ex:
+    except Exception.__str__() as ex:
         return ex
  
-def set_pitch_octave(key, pitch):
-    '''
+def get_octave_pitch(key, pitch):
+    """
     Based on https://minecraft.fandom.com/wiki/Note_Block#Notes
-    '''
+    """
     key += pitch * 0.01
     octave_range = 1
     
@@ -181,14 +184,19 @@ def set_pitch_octave(key, pitch):
     else:
         return None
     
-    pitch = round(0.5*2**((key-9-octave_range*24)/12), 8)
+    pitch = round(0.5*2**((key-9-octave_range*24)/12), 6)
+    # На фандоме тоже 6 после запятой
     if pitch % 1 == 0.0: pitch = int(pitch)
+
     if octave_range == 1: octave_range = ''
     else: octave_range = '_' + str(octave_range - 1)
     
-    return (pitch, octave_range)
+    return octave_range, pitch
 
-def set_volume(n_vel, l_vol, n_pan, l_pan):
+def get_volume(n_vel, l_vol, n_pan, l_pan):
+    """
+    Don't even ask me how it works...
+    """
     if l_pan == 0:
         lower_bound = -100
         upper_bound = 100
@@ -218,35 +226,32 @@ def set_volume(n_vel, l_vol, n_pan, l_pan):
     if vol_l % 1 == 0.0: vol_l = int(vol_l)
     if vol_r % 1 == 0.0: vol_r = int(vol_r)
 
-    return (vol_l, vol_r)
+    return vol_l, vol_r
 
-# FIXME оптимизация проверки на кол-во символов
-def sepparate_data(raw_data: list[list, int]) -> list[list]:
+def separate_data(raw_data: list[list, int]) -> list[list]:
     final = []
     data = []
-    counter = 0
-    didLastAppend = False
+    current_size = 0
+    file_count = 0
+    MAX_SIZE = 25000
 
-    while counter < len(raw_data):
-        if len(str(data).replace(' ', '')) < 25000:
-            data.append(raw_data[counter])
-            didLastAppend = False
-            
-            if len(str(data).replace(' ', '')) >= 25000:
-                data.pop()
-                final.append(data)
-                data = []
-                didLastAppend = True
-            else:
-                counter += 1
-        else:
+    for item in raw_data:
+        item_size = len(str(item).replace(' ', '')) + 1
+
+        if current_size + item_size > MAX_SIZE:
             final.append(data)
+            file_count += 1
             data = []
-            didLastAppend = True
-
-    if not didLastAppend: final.append(data)
+            current_size = 0
+        
+        data.append(item)
+        current_size += item_size
     
-    return final
+    if data:
+        final.append(data)
+        file_count += 1
+    
+    return final, file_count
 
 def dump_data(sepparated_data):
     i = 0
@@ -260,16 +265,3 @@ def dump_data(sepparated_data):
     data = json.dumps(sepparated_data[0], separators=(',', ':'))
     with open(file[:-4]+'_0.json', 'w') as json_result:
         json_result.write(data)
-
-
-# file = 'Queen — Bohemian Rhapsody.nbs'
-# file = 'show.nbs'
-# file = 'intro.nbs'
-# data = parse(file)
-# data = separate_data(data)
-# dump_data(data)
-
-# with open('test.nbs', "rb") as fileobj:
-#     print(get_metadata(fileobj))
-
-

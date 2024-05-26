@@ -20,7 +20,7 @@ from io import BytesIO
 import json
 
 from nbs_parser import (
-    TEMPO, get_metadata, parse, sepparate_data, Header
+    TEMPO, get_nbs_data, parse, separate_data, get_duration_string, Header
 )
 
 
@@ -64,6 +64,22 @@ def main():
 
     lang = translate.Main
 
+    def check_token():
+        lang = translate.Main
+
+        test_token = get_req(url=API_URL[:-6]+'user', headers=REQ_HEADERS)
+
+        if test_token.status_code == 403:
+            remove('title')
+            remove('content')
+            remove('inputs')
+            put_markdown(lang.REACHED_API_LIMIT)
+        elif test_token.status_code != 200:
+            remove('title')
+            remove('content')
+            remove('inputs')
+            put_markdown(lang.INVALID_GISTS_ACCESS_TOKEN)
+
     set_env(title=lang.TAB_TITLE)
     
     put_scope('image', position=0,)
@@ -105,29 +121,17 @@ def main():
         except:
             with use_scope('image', clear=True,):
                 put_markdown('# NO_IMAGE')
-        index_page()
+        #index_page()
+        publish_page()
         check_token()
-
-def check_token():
-    lang = translate.Main
-
-    test_token = get_req(url=API_URL[:-6]+'user', headers=REQ_HEADERS)
-
-    if test_token.status_code == 403:
-        remove('title')
-        remove('content')
-        remove('inputs')
-        put_markdown(lang.REACHED_API_LIMIT)
-    elif test_token.status_code != 200:
-        remove('title')
-        remove('content')
-        remove('inputs')
-        put_markdown(lang.INVALID_GISTS_ACCESS_TOKEN)
     
 def index_page():
     lang = translate.IndexPage
 
     run_js(r"window.onbeforeunload = null")
+
+    def show_latests(): # TODO
+        pass
 
     def button_actions(value):
         match value:
@@ -231,9 +235,6 @@ def index_page():
             ],
             onclick=lambda value: button_actions(value),)
 
-def show_latests(): # TODO
-    pass
-
 def upload_page():
     lang = translate.UploadPage
     max_size = 250
@@ -252,10 +253,10 @@ def upload_page():
                         content=lang.PICK_A_FILE_FIRST,
                         duration=3, color='info',)
                 else:
-                    nbs_data = get_metadata(BytesIO(pin.uploaded_file['content']),)
-                    if isinstance(nbs_data, str):
+                    nbs_data = get_nbs_data(BytesIO(pin.uploaded_file['content']),)
+                    if nbs_data is None:
                         toast(
-                            content=nbs_data,
+                            content='НЕВЕРНЫЕ ДАННЫЕ', # TODO
                             duration=3, color='red',)
                     elif not nbs_data[0].old_tempo in TEMPO:
                         fix_tempo_page(nbs_data)
@@ -286,7 +287,7 @@ def upload_page():
             ],
             onclick=lambda value: button_actions(value),).style(STYLE_MARGIN_TOP)
 
-def overview_custom_page(nbs_data: tuple[Header, list, list,]): # TODO
+def custom_instuments_page(nbs_data: tuple[Header, list, list,]): # TODO
     pass
     # def button_actions(value):
     #     match value:
@@ -320,8 +321,11 @@ def fix_tempo_page(nbs_data: tuple[Header, list, list,]):
 
     def button_actions(value):
         match value:
-            case 'btn_accept':
-                header.tick_delay = pin.new_tempo
+            case 'btn_edit_header':
+                header.tempo = pin.new_tempo[0]
+                header.tick_delay = pin.new_tempo[1]
+                header.duration = header.tick_delay*header.length//20
+                header.duration_string = get_duration_string(header.duration)
                 edit_header_page(nbs_data)
             case 'btn_go_back':
                 upload_page()
@@ -336,16 +340,16 @@ def fix_tempo_page(nbs_data: tuple[Header, list, list,]):
         put_select(
             name='new_tempo',
             label=lang.PICK_TEMPO,
-            help_text=f'Исходный темп {header.old_tempo} t/s',
+            help_text='Исходный темп {:.2f} t/s'.format(header.old_tempo),
             options=[  
-                dict(label=str(tempo)+r' t/s', value=i+1,
+                dict(label='{:.2f} t/s'.format(tempo), value=(tempo,i+1),
                      selected=(i+1 == header.tick_delay or i == 0))
                     for i, tempo in enumerate(TEMPO)],).style(STYLE_MARGIN_TOP)
         put_buttons(
             [  
                 dict(label=i[0], value=i[1], color=i[2])
                 for i in [
-                    [lang.ACCEPT, 'btn_accept', 'primary'],
+                    ['К параметрам', 'btn_edit_header', 'primary'],
                     [lang.GO_BACK, 'btn_go_back', 'danger'],]
             ],
             onclick=lambda value: button_actions(value),).style(STYLE_MARGIN_TOP)
@@ -568,13 +572,14 @@ def edit_header_page(nbs_data: tuple[Header, list, list,]):
                 name='rad_looping',
                 options=[
                     {
-                        "label": 'Проигрывать один раз',
-                        "value": False,
-                        "selected": True,
+                        'label': 'Проигрывать один раз',
+                        'value': False,
+                        'selected': not header.loop,
                     },
                     {
-                        "label": 'Повторять',
-                        "value": True,
+                        'label': 'Повторять',
+                        'value': True,
+                        'selected': header.loop,
                     },
                 ], 
                 inline=True,)
@@ -589,45 +594,85 @@ def edit_header_page(nbs_data: tuple[Header, list, list,]):
             [  
                 dict(label=i[0], value=i[1], color=i[2])  
                 for i in [
-                    ['Продолжить', 'btn_go_overview', 'primary'],
+                    ['К предпросмотру', 'btn_go_overview', 'primary'],
                     ['Назад', 'btn_go_back', 'danger'],
                 ]  
             ],
             onclick=lambda value: button_actions(value),).style(STYLE_MARGIN_TOP)
 
-def overview_page(nbs_data: tuple[Header, list, list,]):
+def overview_page(nbs_data: tuple[Header, list, list,]): # TODO
     lang = translate.OverviewPage
+    header = nbs_data[0]
 
     def button_actions(value):
         match value:
+            case 'btn_check_duplicates':
+                check_duplicates_page(nbs_data)
             case 'btn_go_back':
                 edit_header_page(nbs_data)
 
     with use_scope('title', clear=True):
-        put_markdown('# OVERVIEW')
+        put_markdown('# Предварительный просмотр')
     
     with use_scope('content', clear=True):
-        put_markdown('Пожалуйста, подождите')
+        put_markdown('### Убедитесь, что все параметры верны')
     
     with use_scope('inputs', clear=True):
+        put_table([ 
+            [put_markdown('### Исполнитель'), put_markdown('### Название'), put_markdown('### Длительность'), put_markdown('### Темп'), put_markdown('### Цикличность')],
+            [header.author, header.name, header.duration_string, '{:.2f} t/s'.format(header.tempo), put_markdown('Повторы: {}\nСтарт: {}'.format('∞' if header.loop_count == 0 else header.loop_count, header.loop_start) if header.loop else '—')],
+        ])
+
+        overview_style = 'color:rgb(255,87,51); margin-top:0px; margin-bottom:0px;'
+
+        put_markdown('### Пример вывода в плейлист:')
+        put_markdown(f'**{header.author} — {header.name}**').style(overview_style)
+        put_markdown(f'**{header.duration_string}**').style(overview_style)
+        if header.loop:
+            put_markdown(f'**Loops: {'INFINITE' if header.loop_count == 0 else header.loop_count}**').style(overview_style)
+            put_markdown(f'**Loop starts at: {header.loop_start}**').style(overview_style)
+        put_markdown(f'**By: NICK_NAME**').style(overview_style)
+
         put_buttons(
             [  
                 dict(label=i[0], value=i[1], color=i[2])  
                 for i in [
+                    ['К проверке дублей', 'btn_check_duplicates', 'primary'],
                     ['Назад', 'btn_go_back', 'danger'],
                 ]  
             ],
             onclick=lambda value: button_actions(value),).style(STYLE_MARGIN_TOP)
 
-def parse_nbs_page(nbs_data: tuple[Header, list, list,]):
+def check_duplicates_page(nbs_data: tuple[Header, list, list,], check=None): # FIXME
+    lang = translate.CheckDuplicatesPage
+    header = nbs_data[0]
+
+    def button_actions(value):
+        match value:
+            case 'btn_check_duplicates':
+                check_duplicates_page(nbs_data)
+            case 'btn_go_back':
+                edit_header_page(nbs_data)
+
     with use_scope('title', clear=True):
-        put_markdown('# Отправка трек в GitHub')
+        put_markdown('# Проверяем наличие схожих треков')
     
     with use_scope('content', clear=True):
-        put_markdown('Пожалуйста, подождите')
+        put_markdown('### Пожалуйста, подождите')
     
     with use_scope('inputs', clear=True):
+        pass
+
+def parse_nbs_page(nbs_data: tuple[Header, list, list,], check): # FIXME
+    with use_scope('title', clear=True):
+        put_markdown('# Парсим NBS файл')
+    
+    with use_scope('content', clear=True):
+        put_markdown('### Пожалуйста, подождите')
         put_loading(shape='border', color='primary')
+    
+    with use_scope('inputs', clear=True):
+        put_processbar('loading_bar', 0.5)
     
     header = nbs_data[0]
     notes = nbs_data[1]
@@ -637,12 +682,6 @@ def parse_nbs_page(nbs_data: tuple[Header, list, list,]):
         header.song_length, TEMPO.index(header.tempo) + 1, layers, notes)
 
     sepparated = sepparate_data(note_seq)
-    
-    req_headers = {
-        'Accept': 'application/vnd.github+json',
-        'Authorization': f'Bearer {GISTS_ACCESS_TOKEN}',
-        'X-GitHub-Api-Version': '2022-11-28'
-    }
 
     req_content = {
         'description': header.song_author + header.song_name,
@@ -724,26 +763,34 @@ def parse_nbs_page(nbs_data: tuple[Header, list, list,]):
                     ])
 
     
-    # response = requests.post(
-    #     url=URL, headers=headers, data=json.dumps(new_content)
-    # )
+    response = requests.post(
+        url=URL, headers=headers, data=json.dumps(new_content)
+    )
     
-    # with use_scope('inputs', clear=True):
-    #     if response.status_code == 201:
-    #         popup(title='Трек добавлен!', content=[
-    #             put_buttons(['OK'], onclick=lambda _: close_popup()),
-    #             put_textarea(
-    #                 name='text',
-    #                 value=response.json()['files']['header.json']['raw_url'],),
-    #         ])
-    #     else:
-    #         popup('Ошибка!', [
-    #             put_buttons(['Не OK :с'], onclick=lambda _: close_popup()),
-    #             put_markdown(str(response.status_code))
-    #         ])
+    with use_scope('inputs', clear=True):
+        if response.status_code == 201:
+            popup(title='Трек добавлен!', content=[
+                put_buttons(['OK'], onclick=lambda _: close_popup()),
+                put_textarea(
+                    name='text',
+                    value=response.json()['files']['header.json']['raw_url'],),
+            ])
+        else:
+            popup('Ошибка!', [
+                put_buttons(['Не OK :с'], onclick=lambda _: close_popup()),
+                put_markdown(str(response.status_code))
+            ])
 
-def publish_page(SOME_PARSED_DATA): # FIXME
-    pass
+def publish_page(SOME_PARSED_DATA=None): # FIXME
+    with use_scope('title', clear=True):
+        put_markdown('# Публикуем трек в плейлист')
+    
+    with use_scope('content', clear=True):
+        put_markdown('### Пожалуйста, подождите')
+        put_loading(shape='border', color='primary')
+    
+    with use_scope('inputs', clear=True):
+        put_processbar('loading_bar', 0.5).style(STYLE_MARGIN_TOP)
 
 def show_published_track():
     pass
