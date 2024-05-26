@@ -228,21 +228,24 @@ def get_volume(n_vel, l_vol, n_pan, l_pan):
 
     return vol_l, vol_r
 
-def separate_data(raw_data: list[list, int]) -> list[list]:
+def separate_sequence(sequence: list[list, int]) -> list[list]:
     final = []
     data = []
-    current_size = 0
+    current_size = 1 # JSON contains BRACKETS. 1 is for the first [
     file_count = 0
     MAX_SIZE = 25000
 
-    for item in raw_data:
-        item_size = len(str(item).replace(' ', '')) + 1
+    for item in sequence:
+        # Items are sepatated with commas. The last one will be replaced with ]
+        # 3 is for string quotes and commas ("str",) and 1 is for commas
+        item_size = len(str(item).replace(' ', '')) + (3 if (
+            type(item) == str) else 1)
 
         if current_size + item_size > MAX_SIZE:
             final.append(data)
             file_count += 1
             data = []
-            current_size = 0
+            current_size = 1
         
         data.append(item)
         current_size += item_size
