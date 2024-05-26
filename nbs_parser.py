@@ -110,12 +110,12 @@ def get_nbs_data(nbs_file: BytesIO) -> Optional[tuple[Header,
 
     return header, nbs_data.notes, nbs_data.layers
 
-def parse(length: int,
-          tick_delay: int,
-          notes: list[Note],
-          layers: list[Layer],
-          loop_start: int = 0,
-          loop: bool = False,) -> Union[list[Union[list, int, str]], str]:
+def parse_nbs(length: int,
+              tick_delay: int,
+              notes: list[Note],
+              layers: list[Layer],
+              loop_start: int = 0,
+              loop: bool = False,) -> Union[list[str], str]:
     """
     TODO
     """
@@ -156,13 +156,18 @@ def parse(length: int,
                     else:
                         sequence.append(tick_delay)
                     break
-        
-        return sequence
-    
+
+        separated_data = separate_sequence(sequence)
+        dumped_data = dump_data(separated_data)
+
+        return dumped_data
+
     except Exception.__str__() as ex:
         return ex
  
-def get_octave_pitch(key, pitch):
+def get_octave_pitch(key: int, pitch: int) -> Optional[tuple[str,
+                                                             Union[int,
+                                                                   float],],]:
     """
     Based on https://minecraft.fandom.com/wiki/Note_Block#Notes
     """
@@ -228,11 +233,13 @@ def get_volume(n_vel, l_vol, n_pan, l_pan):
 
     return vol_l, vol_r
 
-def separate_sequence(sequence: list[list, int]) -> list[list]:
-    final = []
+def separate_sequence(sequence: list[list, int, str]) -> list:
+    """
+    TODO
+    """
+    separated_data = []
     data = []
     current_size = 1 # JSON contains BRACKETS. 1 is for the first [
-    file_count = 0
     MAX_SIZE = 25000
 
     for item in sequence:
@@ -242,8 +249,7 @@ def separate_sequence(sequence: list[list, int]) -> list[list]:
             type(item) == str) else 1)
 
         if current_size + item_size > MAX_SIZE:
-            final.append(data)
-            file_count += 1
+            separated_data.append(data)
             data = []
             current_size = 1
         
@@ -251,20 +257,13 @@ def separate_sequence(sequence: list[list, int]) -> list[list]:
         current_size += item_size
     
     if data:
-        final.append(data)
-        file_count += 1
+        separated_data.append(data)
     
-    return final, file_count
+    return separated_data
 
-def dump_data(sepparated_data):
-    i = 0
-    for element in sepparated_data:
-        data = json.dumps(element, separators=(',', ':'))
-        with open(file[:-4]+'_'+str(i)+'.json', 'w') as json_result:
-            json_result.write(data)
-        i += 1
-    
-    sepparated_data[0][0][0] = i - 1
-    data = json.dumps(sepparated_data[0], separators=(',', ':'))
-    with open(file[:-4]+'_0.json', 'w') as json_result:
-        json_result.write(data)
+def dump_data(separated_data) -> list[str]:
+    dumped_data = []
+    for element in separated_data:
+        dumped_data.append(json.dumps(element, separators=(',', ':'),),)
+
+    return dumped_data

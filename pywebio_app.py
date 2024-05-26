@@ -20,8 +20,7 @@ from io import BytesIO
 import json
 
 from nbs_parser import (
-    TEMPO, get_nbs_data, parse, separate_data, get_duration_string, Header
-)
+    TEMPO, Header, get_nbs_data, parse_nbs, get_duration_string,)
 
 
 try:
@@ -121,8 +120,8 @@ def main():
         except:
             with use_scope('image', clear=True,):
                 put_markdown('# NO_IMAGE')
-        #index_page()
-        publish_page()
+        index_page()
+        #publish_page()
         check_token()
     
 def index_page():
@@ -354,7 +353,13 @@ def fix_tempo_page(nbs_data: tuple[Header, list, list,]):
             ],
             onclick=lambda value: button_actions(value),).style(STYLE_MARGIN_TOP)
 
-def edit_header_page(nbs_data: tuple[Header, list, list,]):
+def edit_header_page(nbs_data: tuple[Header, list, list,]): # FIXME 
+    # Баг переключения кнопок:
+    #   При ручном вводе одного из стоковых значений, кнопки переключаются
+    #   на это значение, но при дальнейшем вводе изменений больше нет
+    #
+    #   Копать в    if not author_last_pressed is None:
+
     lang = translate.EditHeaderPage
     loop_max = 128
     author_max = 24
