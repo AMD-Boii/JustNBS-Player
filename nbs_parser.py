@@ -8,7 +8,7 @@ from typing import Optional, Union
 from dataclasses import dataclass
 
 from io import BytesIO
-from pynbs import Layer, Note, Parser, Instrument
+from pynbs import Layer, Note, Parser, Instrument # TODO
 
 import json
 
@@ -16,11 +16,11 @@ TEMPO = (
     20.0, 10.0, 6.67, 5.0, 4.0,
     3.33, 2.86, 2.5, 2.22, 2.0,
     1.82, 1.67, 1.54, 1.43, 1.33,
-    1.25, 1.18, 1.11, 1.05, 1.0,
-    0.95, 0.91, 0.87, 0.83, 0.8,
-    0.77, 0.74, 0.71, 0.69, 0.67,
-    0.65, 0.62, 0.61, 0.59, 0.57,
-    0.56, 0.54, 0.53, 0.51, 0.5,)
+    1.25, 1.18, 1.11, 1.05, 1.0,)
+    # 0.95, 0.91, 0.87, 0.83, 0.8,
+    # 0.77, 0.74, 0.71, 0.69, 0.67,
+    # 0.65, 0.62, 0.61, 0.59, 0.57,
+    # 0.56, 0.54, 0.53, 0.51, 0.5,)
 
 BASE_INSTRUMENTS = (
     'block.note_block.harp',
@@ -40,9 +40,15 @@ BASE_INSTRUMENTS = (
     'block.note_block.banjo',
     'block.note_block.pling',)
 
+TERMINATORS = ( # TODO Lyrics???
+    'LOOP',)
+
 
 @dataclass
 class Header:
+    """
+    TODO
+    """
     author: str
     name: str
     tempo: float
@@ -63,25 +69,25 @@ class Header:
     old_loop_start: int
 
 
-def get_duration_string(seconds) -> str:
+def get_duration_string(seconds: int) -> str:
+    """
+    TODO
+    """
     minutes = seconds // 60
     remaining_seconds = seconds % 60
+
     return '{}:{:02d}'.format(minutes, remaining_seconds)
 
-# def get_metadata(nbs_file: BytesIO) -> Union[
-#     tuple[Header, list[Note], list[Layer],], str]:
-def get_nbs_data(nbs_file: BytesIO) -> Optional[tuple[Header, 
-                                                      list[Note], 
-                                                      list[Layer],],]:
-                                                    #   Optional[
-                                                    #       list[Instrument],] 
+def get_nbs_data(nbs_file: BytesIO) -> Union[tuple[Header, 
+                                                   list[Note], 
+                                                   list[Layer],], str]:
     """
     TODO
     """
     try:
         nbs_data = Parser(nbs_file).read_file()
-    except Exception:
-        return None
+    except Exception as ex:
+        return ex.__str__()
     
     old = nbs_data.header
 
@@ -126,7 +132,7 @@ def parse_nbs(length: int,
         for tick in range(length):
             if loop:
                 if tick == loop_start:
-                    sequence.append('LOOP')
+                    sequence.append(TERMINATORS[0])
                     loop = False # Cycle optimization
 
             for note_id in range(last_note_id, len(notes)):
@@ -141,15 +147,12 @@ def parse_nbs(length: int,
                     volume = get_volume(
                         note.velocity, layer.volume,
                         note.panning, layer.panning,)
-                    
                     element = [
                         BASE_INSTRUMENTS[note.instrument] + octave_pitch[0],
                         octave_pitch[1],
                         volume[0],
                         volume[1],]
-                    
                     sequence.append(element)
-                    
                 else:
                     if type(sequence[-1]) is int:
                         sequence[-1] += tick_delay
@@ -159,15 +162,14 @@ def parse_nbs(length: int,
 
         separated_data = separate_sequence(sequence)
         dumped_data = dump_data(separated_data)
-
+        
         return dumped_data
 
-    except Exception.__str__() as ex:
-        return ex
- 
-def get_octave_pitch(key: int, pitch: int) -> Optional[tuple[str,
-                                                             Union[int,
-                                                                   float],],]:
+    except Exception as ex:
+        return ex.__str__()
+
+def get_octave_pitch(key: int,
+                     pitch: int) -> Optional[tuple[str, Union[int, float],],]:
     """
     Based on https://minecraft.fandom.com/wiki/Note_Block#Notes
     """
@@ -191,14 +193,15 @@ def get_octave_pitch(key: int, pitch: int) -> Optional[tuple[str,
     
     pitch = round(0.5*2**((key-9-octave_range*24)/12), 6)
     # На фандоме тоже 6 после запятой
-    if pitch % 1 == 0.0: pitch = int(pitch)
+    if pitch % 1 == 0: pitch = int(pitch)
 
     if octave_range == 1: octave_range = ''
     else: octave_range = '_' + str(octave_range - 1)
     
     return octave_range, pitch
 
-def get_volume(n_vel, l_vol, n_pan, l_pan):
+def get_volume(n_vel: int, l_vol: int,
+               n_pan: int, l_pan: int) -> tuple[Union[int, float]]:
     """
     Don't even ask me how it works...
     """
@@ -228,19 +231,20 @@ def get_volume(n_vel, l_vol, n_pan, l_pan):
     vol_l = round(vol_l, 2)
     vol_r = round(vol_r, 2)
 
-    if vol_l % 1 == 0.0: vol_l = int(vol_l)
-    if vol_r % 1 == 0.0: vol_r = int(vol_r)
+    if vol_l % 1 == 0: vol_l = int(vol_l)
+    if vol_r % 1 == 0: vol_r = int(vol_r)
 
     return vol_l, vol_r
 
-def separate_sequence(sequence: list[list, int, str]) -> list:
+def separate_sequence(sequence: list[list, int, str]) -> list[list]:
     """
     TODO
     """
+    MAX_SIZE = 25000
+
     separated_data = []
     data = []
     current_size = 1 # JSON contains BRACKETS. 1 is for the first [
-    MAX_SIZE = 25000
 
     for item in sequence:
         # Items are sepatated with commas. The last one will be replaced with ]
@@ -261,7 +265,7 @@ def separate_sequence(sequence: list[list, int, str]) -> list:
     
     return separated_data
 
-def dump_data(separated_data) -> list[str]:
+def dump_data(separated_data: list[list]) -> list[str]:
     dumped_data = []
     for element in separated_data:
         dumped_data.append(json.dumps(element, separators=(',', ':'),),)
