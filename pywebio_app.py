@@ -47,6 +47,8 @@ try:
 except:
     JUSTNBS_GIST_ID = None
 
+STYLE_MARGIN_TOP = r'margin-top:20px;'
+
 
 @config(theme='dark')
 def main():
@@ -234,6 +236,7 @@ def show_latests(): # TODO
 
 def upload_page():
     lang = translate.UploadPage
+    max_size = 250
 
     run_js(r"""
     window.onbeforeunload = function() {
@@ -269,9 +272,11 @@ def upload_page():
     
     with use_scope('inputs', clear=True,):
         put_file_upload(
-            name='uploaded_file', accept='.nbs',
-            max_size='250K', placeholder=lang.PLACEHOLDER,
-            help_text=lang.HELP_TEXT)
+            name='uploaded_file',
+            label='Выберите файл для загрузки',
+            accept='.nbs',
+            max_size=f'{max_size}K', placeholder=lang.PLACEHOLDER,
+            help_text=lang.MAX_SIZE.replace('MAX', str(max_size))).style(STYLE_MARGIN_TOP)
         put_buttons(
             [  
                 dict(label=i[0], value=i[1], color=i[2])  
@@ -279,7 +284,7 @@ def upload_page():
                     [lang.UPLOAD, 'btn_upload', 'primary'],
                     [lang.CANCEL, 'btn_cancel', 'danger'],]  
             ],
-            onclick=lambda value: button_actions(value),)
+            onclick=lambda value: button_actions(value),).style(STYLE_MARGIN_TOP)
 
 def overview_custom_page(nbs_data: tuple[Header, list, list,]): # TODO
     pass
@@ -329,12 +334,13 @@ def fix_tempo_page(nbs_data: tuple[Header, list, list,]):
     
     with use_scope('inputs', clear=True):
         put_select(
-            label=lang.PICK_TEMPO.replace('TEMPO', str(header.old_tempo),),
             name='new_tempo',
+            label=lang.PICK_TEMPO,
+            help_text=f'Исходный темп {header.old_tempo} t/s',
             options=[  
                 dict(label=str(tempo)+r' t/s', value=i+1,
                      selected=(i+1 == header.tick_delay or i == 0))
-                    for i, tempo in enumerate(TEMPO)],)
+                    for i, tempo in enumerate(TEMPO)],).style(STYLE_MARGIN_TOP)
         put_buttons(
             [  
                 dict(label=i[0], value=i[1], color=i[2])
@@ -342,30 +348,88 @@ def fix_tempo_page(nbs_data: tuple[Header, list, list,]):
                     [lang.ACCEPT, 'btn_accept', 'primary'],
                     [lang.GO_BACK, 'btn_go_back', 'danger'],]
             ],
-            onclick=lambda value: button_actions(value),)
+            onclick=lambda value: button_actions(value),).style(STYLE_MARGIN_TOP)
 
 def edit_header_page(nbs_data: tuple[Header, list, list,]):
     lang = translate.EditHeaderPage
+    loop_max = 128
+    author_max = 24
+    name_max = 36
     header = nbs_data[0]
+    author_last_pressed = header.author
 
-    def check_author_len():
+    def help_form_by_number(number: int) -> str:
+        forms = ['символ', 'символа', 'символов']
+        
+        if number == 1:
+            return forms[0]
+        elif 11 <= number % 100 <= 19:
+            return forms[2]
+        elif number % 10 == 1:
+            return forms[0]
+        elif 2 <= number % 10 <= 4:
+            return forms[1]
+        else:
+            return forms[2]
+
+    def change_author_buttons():
+        nonlocal author_last_pressed
+
+        if pin.inp_author == header.old_author:
+            with use_scope('input_author_btns', clear=True):
+                put_buttons(
+                    [  
+                        dict(label=i[0], value=i[1], color=i[2])  
+                        for i in [
+                            ['Song author', 'use_song_author', 'light'],
+                            ['Original song author', 'use_origin_author', 'secondary'],
+                        ]  
+                    ],
+                    onclick=lambda value: button_actions(value),)
+        elif pin.inp_author == header.old_original:
+            with use_scope('input_author_btns', clear=True):
+                put_buttons(
+                    [  
+                        dict(label=i[0], value=i[1], color=i[2])  
+                        for i in [
+                            ['Song author', 'use_song_author', 'secondary'],
+                            ['Original song author', 'use_origin_author', 'light'],
+                        ]  
+                    ],
+                    onclick=lambda value: button_actions(value),)
+        else:
+            if not author_last_pressed is None:
+                author_last_pressed = None
+                with use_scope('input_author_btns', clear=True):
+                    put_buttons(
+                        [  
+                            dict(label=i[0], value=i[1], color=i[2])  
+                            for i in [
+                                ['Song author', 'use_song_author', 'secondary'],
+                                ['Original song author', 'use_origin_author', 'secondary'],
+                            ]  
+                        ],
+                        onclick=lambda value: button_actions(value),)
+
+    def check_author():
         if not pin.inp_author is None:
-            if len(pin.inp_author) > 24:
-                pin.inp_author = pin.inp_author[:24]
+            if len(pin.inp_author) > author_max:
+                pin.inp_author = pin.inp_author[:author_max]
             header.author = sub(r'\s+', ' ', pin.inp_author.strip(),)
+        change_author_buttons()
     
-    def check_name_len():
-        if not pin.inp_author is None:
-            if len(pin.inp_name) > 48:
-                pin.inp_name = pin.inp_name[:48]
+    def check_name():
+        if not pin.inp_name is None:
+            if len(pin.inp_name) > name_max:
+                pin.inp_name = pin.inp_name[:name_max]
             header.name = sub(r'\s+', ' ', pin.inp_name.strip(),)
     
     def check_loop_count():
         if not pin.inp_loop_count is None:
             if pin.inp_loop_count < 0:
                 pin.inp_loop_count = 0
-            if pin.inp_loop_count > 128:
-                pin.inp_loop_count = 128
+            if pin.inp_loop_count > loop_max:
+                pin.inp_loop_count = loop_max
             header.loop_count = pin.inp_loop_count
 
     def check_loop_start():
@@ -382,8 +446,8 @@ def edit_header_page(nbs_data: tuple[Header, list, list,]):
             with use_scope('input_looping_rad', clear=True):
                 put_input(
                     name='inp_loop_count', label='Количество повторов',
-                    help_text='0 - бесконечно. Максимум 128 (а зачем больше?)',
-                    type=NUMBER, value=header.loop_count)
+                    help_text=f'0 - бесконечно. Максимум {loop_max} (а зачем больше?)',
+                    type=NUMBER, value=header.loop_count).style(STYLE_MARGIN_TOP)
                 pin_on_change(
                     'inp_loop_count', onchange=lambda _: check_loop_count(),
                     clear=True, init_run=True,)
@@ -400,7 +464,7 @@ def edit_header_page(nbs_data: tuple[Header, list, list,]):
                 put_input(
                     name='inp_loop_start', label='Тик начала повтора',
                     help_text=f'Максимум {header.length}',
-                    type=NUMBER, value=header.loop_start)
+                    type=NUMBER, value=header.loop_start).style(STYLE_MARGIN_TOP)
                 pin_on_change(
                     'inp_loop_start', onchange=lambda _: check_loop_start(),
                     clear=True, init_run=True,)
@@ -418,6 +482,7 @@ def edit_header_page(nbs_data: tuple[Header, list, list,]):
             clear('input_looping_rad')
 
     def button_actions(value):
+        nonlocal author_last_pressed
         match value:
             case 'btn_loop_count_minus':
                 pin.inp_loop_count -= 1
@@ -440,29 +505,19 @@ def edit_header_page(nbs_data: tuple[Header, list, list,]):
                 check_loop_count()
 
             case 'use_song_author':
-                pin.inp_author = header.old_author
-                with use_scope('input_author_btns', clear=True):
-                    put_buttons(
-                        [  
-                            dict(label=i[0], value=i[1], color=i[2])  
-                            for i in [
-                                ['Song author', 'use_song_author', 'light'],
-                                ['Original song author', 'use_origin_author', 'secondary'],
-                            ]  
-                        ],
-                        onclick=lambda value: button_actions(value),)
+                if author_last_pressed == header.old_original or author_last_pressed is None:
+                    author_last_pressed = header.old_author
+                    pin.inp_author = header.author = header.old_author
+                    check_author()
             case 'use_origin_author':
-                pin.inp_author = header.old_original
-                with use_scope('input_author_btns', clear=True):
-                    put_buttons(
-                        [  
-                            dict(label=i[0], value=i[1], color=i[2])  
-                            for i in [
-                                ['Song author', 'use_song_author', 'secondary'],
-                                ['Original song author', 'use_origin_author', 'light'],
-                            ]  
-                        ],
-                        onclick=lambda value: button_actions(value),)
+                if author_last_pressed == header.old_author or author_last_pressed is None:
+                    author_last_pressed = header.old_original
+                    pin.inp_author = header.author = header.old_original
+                    check_author()
+            
+            case 'btn_name_def':
+                pin.inp_name = header.old_name
+                check_name()
                     
             case 'btn_go_overview':
                 overview_page(nbs_data)
@@ -476,36 +531,34 @@ def edit_header_page(nbs_data: tuple[Header, list, list,]):
         put_markdown('# Подготовка к публикации')
     
     with use_scope('content', clear=True):
-        put_markdown('### Здесь вы можете изменить параметры (заголовок) трека')
+        put_markdown('### Здесь вы можете изменить параметры заголовка трека')
 
     with use_scope('inputs', clear=True):
         put_input(
-            'inp_author', label='Автор', value=header.author, type=TEXT,
-            help_text='Максимум 24 символа',)
+            'inp_author', label='Исполнитель / Группа', value=header.author, type=TEXT,
+            help_text=f'Максимум {author_max} {help_form_by_number(author_max)}',).style(STYLE_MARGIN_TOP)
+        put_markdown('Взять значение из:')
+        put_scope('input_author_btns', scope='inputs')
+        change_author_buttons()
         pin_on_change(
-            'inp_author', onchange=lambda _: check_author_len(),
+            'inp_author', onchange=lambda _: check_author(),
             clear=True, init_run=True,)
-
-        put_markdown('Использовать имя автора из:')
-
-        put_scope('input_author_btns')
-        with use_scope('input_author_btns', clear=True):
-            put_buttons(
-                [  
-                    dict(label=i[0], value=i[1], color=i[2])  
-                    for i in [
-                        ['Song author', 'use_song_author', 'light'],
-                        ['Original song author', 'use_origin_author', 'secondary'],
-                    ]  
-                ],
-                onclick=lambda value: button_actions(value),)
+        
+        
             
         put_input(
-            'inp_name', label='Название', value=header.name, type=TEXT,
-            help_text='Максимум 48 символов',)
+            'inp_name', label='Название трека', value=header.name, type=TEXT,
+            help_text=f'Максимум {name_max} {help_form_by_number(name_max)}',).style(STYLE_MARGIN_TOP)
         pin_on_change(
-            'inp_name', onchange=lambda _: check_name_len(),
+            'inp_name', onchange=lambda _: check_name(),
             clear=True, init_run=True,)
+        put_buttons(
+            [  
+                dict(label=i[0], value=i[1], color=i[2])  
+                for i in [
+                    ['По умолчанию', 'btn_name_def', 'warning']]  
+            ],
+            onclick=lambda value: button_actions(value), outline=True,)
 
         if header.old_loop:
             put_markdown("""
@@ -540,11 +593,31 @@ def edit_header_page(nbs_data: tuple[Header, list, list,]):
                     ['Назад', 'btn_go_back', 'danger'],
                 ]  
             ],
-            onclick=lambda value: button_actions(value)
-        )
+            onclick=lambda value: button_actions(value),).style(STYLE_MARGIN_TOP)
 
 def overview_page(nbs_data: tuple[Header, list, list,]):
-    pass
+    lang = translate.OverviewPage
+
+    def button_actions(value):
+        match value:
+            case 'btn_go_back':
+                edit_header_page(nbs_data)
+
+    with use_scope('title', clear=True):
+        put_markdown('# OVERVIEW')
+    
+    with use_scope('content', clear=True):
+        put_markdown('Пожалуйста, подождите')
+    
+    with use_scope('inputs', clear=True):
+        put_buttons(
+            [  
+                dict(label=i[0], value=i[1], color=i[2])  
+                for i in [
+                    ['Назад', 'btn_go_back', 'danger'],
+                ]  
+            ],
+            onclick=lambda value: button_actions(value),).style(STYLE_MARGIN_TOP)
 
 def parse_nbs_page(nbs_data: tuple[Header, list, list,]):
     with use_scope('title', clear=True):

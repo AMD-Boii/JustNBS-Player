@@ -84,8 +84,8 @@ class UploadPage:
     PICK_A_FILE_FIRST = r'Для начала, выберите файл'
 
     # Upload
-    PLACEHOLDER = r'Выбери NBS файл для загрузки'
-    HELP_TEXT = r'hello'
+    PLACEHOLDER = r'Например, example_track_file.nbs'
+    MAX_SIZE = r'Максимальный размер файла - MAX КБ'
 
     # Buttons
     UPLOAD = r'Загрузить'
@@ -95,14 +95,14 @@ class UploadPage:
 class FixTempoPage:
     UNSUPPORTED_TEMPO = r'# NBS имеет неподдерживаемый темп!'
 
-    NO_WORRIES = r"""
-        Не беда! Вы можете изменить темп прямо здесь!
+    NO_WORRIES = """
+        ### Не беда! Вы можете изменить темп прямо здесь!
         Но лучше вернуться в OpenNBS и тщательно его отредактировать...
         Выберите максимально близкий к исходному темп.
     """
 
     # Select
-    PICK_TEMPO = r'Выберите поддерживаемый темп (исходный темп TEMPO t/s)'
+    PICK_TEMPO = r'Выберите поддерживаемый темп'
 
     # Buttons
     ACCEPT = r'Подтвердить'
@@ -110,4 +110,8 @@ class FixTempoPage:
 
 
 class EditHeaderPage:
+    pass
+
+
+class OverviewPage:
     pass
