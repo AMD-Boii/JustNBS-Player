@@ -330,12 +330,7 @@ def fix_tempo_page(nbs_data: tuple[Header, list, list,]):
             ],
             onclick=lambda value: button_actions(value),).style(STYLE_MARGIN_TOP)
 
-def edit_header_page(nbs_data: tuple[Header, list, list,]): # FIXME 
-    # Баг переключения кнопок:
-    #   При ручном вводе одного из стоковых значений, кнопки переключаются
-    #   на это значение, но при дальнейшем вводе изменений больше нет
-    #
-    #   Копать в    if not author_last_pressed is None:
+def edit_header_page(nbs_data: tuple[Header, list, list,]):
 
     lang = translate.EditHeaderPage
     loop_max = 128
@@ -362,6 +357,7 @@ def edit_header_page(nbs_data: tuple[Header, list, list,]): # FIXME
         nonlocal author_last_pressed
 
         if pin.inp_author == header.old_author:
+            author_last_pressed = header.old_author
             with use_scope('input_author_btns', clear=True):
                 put_buttons(
                     [  
@@ -373,6 +369,7 @@ def edit_header_page(nbs_data: tuple[Header, list, list,]): # FIXME
                     ],
                     onclick=lambda value: button_actions(value),)
         elif pin.inp_author == header.old_original:
+            author_last_pressed = header.old_original
             with use_scope('input_author_btns', clear=True):
                 put_buttons(
                     [  
@@ -491,13 +488,13 @@ def edit_header_page(nbs_data: tuple[Header, list, list,]): # FIXME
                 check_loop_count()
 
             case 'use_song_author':
-                if author_last_pressed == header.old_original or author_last_pressed is None:
-                    author_last_pressed = header.old_author
+                if author_last_pressed == header.old_original or (
+                                                author_last_pressed is None):
                     pin.inp_author = header.author = header.old_author
                     check_author()
             case 'use_origin_author':
-                if author_last_pressed == header.old_author or author_last_pressed is None:
-                    author_last_pressed = header.old_original
+                if author_last_pressed == header.old_author or (
+                                                author_last_pressed is None):
                     pin.inp_author = header.author = header.old_original
                     check_author()
             
