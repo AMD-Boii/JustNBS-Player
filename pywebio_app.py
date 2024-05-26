@@ -26,23 +26,13 @@ from nbs_parser import (
 try:
     JUSTNBS_GIST_ID = environ['JUSTNBS_GIST_ID']
     try:
-        ACTUAL_PLAYLIST_RAW = environ['ACTUAL_PLAYLIST_RAW']
-        try:
-            LATEST_TRACKS_RAW = environ['LATEST_TRACKS_RAW']
-            try:
-                GISTS_ACCESS_TOKEN = environ['GISTS_ACCESS_TOKEN']
-                API_URL = 'https://api.github.com/gists/'
-                REQ_HEADERS = {
-                    'Accept': 'application/vnd.github+json',
-                    'Authorization': f'Bearer {GISTS_ACCESS_TOKEN}',
-                    'X-GitHub-Api-Version': '2022-11-28',
-                }
-            except:
-                GISTS_ACCESS_TOKEN = None
-        except:
-            LATEST_TRACKS_RAW = None
+        REQ_HEADERS = {
+            'Accept': 'application/vnd.github+json',
+            'Authorization': f'Bearer {environ['GISTS_ACCESS_TOKEN']}',
+            'X-GitHub-Api-Version': '2022-11-28',}
+        API_URL = 'https://api.github.com/gists'
     except:
-        ACTUAL_PLAYLIST_RAW = None
+        REQ_HEADERS = None
 except:
     JUSTNBS_GIST_ID = None
 
@@ -66,7 +56,7 @@ def main():
     def check_token():
         lang = translate.Main
 
-        test_token = get_req(url=API_URL[:-6]+'user', headers=REQ_HEADERS)
+        test_token = get_req(url=API_URL[:-5]+'user', headers=REQ_HEADERS)
 
         if test_token.status_code == 403:
             remove('title')
@@ -80,6 +70,8 @@ def main():
             put_markdown(lang.INVALID_GISTS_ACCESS_TOKEN)
 
     set_env(title=lang.TAB_TITLE)
+    # run_js("$('head link[rel=icon]').attr('href', image_url)", 
+    #        image_url="https://www.python.org/static/favicon.ico")
     
     put_scope('image', position=0,)
     put_scope('title', position=1,)
@@ -92,25 +84,10 @@ def main():
     elif not bool(fullmatch(r'[0-9a-f]{32}', JUSTNBS_GIST_ID),):
         put_markdown(lang.WRONG_JUSTNBS_GIST_ID_FORMAT)
 
-    elif ACTUAL_PLAYLIST_RAW is None:
-        put_markdown(lang.NO_ACTUAL_PLAYLIST_RAW)
-    elif not ACTUAL_PLAYLIST_RAW.startswith(r'https://gist.github.com/'):
-        put_markdown(lang.WRONG_ACTUAL_PLAYLIST_RAW_FORMAT)
-    elif not JUSTNBS_GIST_ID in ACTUAL_PLAYLIST_RAW:
-        put_markdown(lang.WRONG_ACTUAL_PLAYLIST_RAW_FORMAT)
-
-    elif LATEST_TRACKS_RAW is None:
-        put_markdown(lang.NO_LATEST_TRACKS_RAW)
-    elif not LATEST_TRACKS_RAW.startswith(r'https://gist.github.com/'):
-        put_markdown(lang.WRONG_LATEST_TRACKS_RAW_FORMAT)
-    elif not JUSTNBS_GIST_ID in LATEST_TRACKS_RAW:
-        put_markdown(lang.WRONG_LATEST_TRACKS_RAW_FORMAT)
-
-    elif GISTS_ACCESS_TOKEN is None:
+    elif REQ_HEADERS is None:
         put_markdown(lang.NO_GISTS_ACCESS_TOKEN)
-    elif not GISTS_ACCESS_TOKEN.startswith(r'ghp_'):
-        put_markdown(lang.WRONG_GISTS_ACCESS_TOKEN_FORMAT)
-    elif not bool(fullmatch(r'[0-9a-zA-Z]{36}', GISTS_ACCESS_TOKEN[4:]),):
+    elif not bool(fullmatch(r'[0-9a-zA-Z]{36}', 
+                            REQ_HEADERS['Authorization'][-36:]),):
         put_markdown(lang.WRONG_GISTS_ACCESS_TOKEN_FORMAT)
     else:
         try:
@@ -613,6 +590,8 @@ def overview_page(nbs_data: tuple[Header, list, list,]): # TODO
         match value:
             case 'btn_check_duplicates':
                 check_duplicates_page(nbs_data)
+            case 'btn_test':
+                parse_nbs_page(nbs_data)
             case 'btn_go_back':
                 edit_header_page(nbs_data)
 
@@ -643,6 +622,7 @@ def overview_page(nbs_data: tuple[Header, list, list,]): # TODO
                 dict(label=i[0], value=i[1], color=i[2])  
                 for i in [
                     ['К проверке дублей', 'btn_check_duplicates', 'primary'],
+                    ['TEST PUBLISHING', 'btn_test', 'primary'],
                     ['Назад', 'btn_go_back', 'danger'],
                 ]  
             ],
@@ -668,7 +648,12 @@ def check_duplicates_page(nbs_data: tuple[Header, list, list,], check=None): # F
     with use_scope('inputs', clear=True):
         pass
 
-def parse_nbs_page(nbs_data: tuple[Header, list, list,], check): # FIXME
+def parse_nbs_page(nbs_data: tuple[Header, list, list,], check=None): # FIXME
+    lang = translate.ParseNbsPage
+    header = nbs_data[0]
+    notes = nbs_data[1]
+    layers = nbs_data[2]
+
     with use_scope('title', clear=True):
         put_markdown('# Парсим NBS файл')
     
@@ -678,115 +663,47 @@ def parse_nbs_page(nbs_data: tuple[Header, list, list,], check): # FIXME
     
     with use_scope('inputs', clear=True):
         put_processbar('loading_bar', 0.5)
-    
-    header = nbs_data[0]
-    notes = nbs_data[1]
-    layers = nbs_data[2]
 
-    note_seq = parse(
-        header.song_length, TEMPO.index(header.tempo) + 1, layers, notes)
-
-    sepparated = sepparate_data(note_seq)
-
-    req_content = {
-        'description': header.song_author + header.song_name,
-        'public': True,
-        'files': {
-            'header.json': {
-                'content': 'empty'
-            }
-        }
-    }
-
-    response = requests.post(
-        url=URL, headers=req_headers, data=json.dumps(req_content)
-    )
-
-    print(response.status_code)
-    
-    if response.status_code == 201:
-        gist_id = '/' + response.json()['id']
-        gist_raw_url = response.json()['files']['header.json']['raw_url'][:-11]
-
-        req_content = {
-            'files': {},
-        }
-
-        for element in sepparated:
-            content = json.dumps(element, separators=(',', ':'))
-            
-            req_content['files'].update(
-                {
-                    f'track_{sepparated.index(element)}.json': {
-                        'content': content,
-                    }
-                }
-            )
+        track_files = parse_nbs(length=header.length,
+                                tick_delay=header.tick_delay,
+                                notes=notes,
+                                layers=layers,
+                                loop_start=header.loop_start,
+                                loop=header.loop)
         
-        response = requests.patch(
-            url=URL + gist_id, headers=req_headers, data=json.dumps(req_content)
-        )
+        publish_page(header, track_files)
 
-        print(response.status_code)
+    # with use_scope('inputs', clear=True):
+    #     if response.status_code == 201:
+    #         popup(title='Трек добавлен!', content=[
+    #             put_buttons(['OK'], onclick=lambda _: close_popup()),
+    #             put_textarea(
+    #                 name='text',
+    #                 value=response.json()['files']['header.json']['raw_url'],),
+    #         ])
+    #     else:
+    #         popup('Ошибка!', [
+    #             put_buttons(['Не OK :с'], onclick=lambda _: close_popup()),
+    #             put_markdown(str(response.status_code))
+    #         ])
 
-        if response.status_code == 200:
-            links = []
-            for i in range(len(sepparated)):
-                links.append(gist_raw_url + 'track_' + str(i) + '.json')
-
-            track_header = [
-                header.song_author,
-                header.song_name,
-                header.loop,
-                header.max_loop_count,
-                header.loop_start,
-                links,
-            ]
-
-            req_content = {
-                'files': {
-                    'header.json': {
-                        'content': json.dumps(track_header)
-                    }
-                },
-            }
-
-            response = requests.patch(
-                url=URL + gist_id, headers=req_headers, 
-                data=json.dumps(req_content)
-            )
-
-            print(response.status_code)
-
-            if response.status_code == 200:
-                with use_scope('inputs', clear=True):
-                    popup(title='Трек добавлен!', content=[
-                        put_buttons(['OK'], onclick=lambda _: close_popup()),
-                        put_textarea(
-                            name='text',
-                            value=response.json()['files']['header.json']['raw_url'],),
-                    ])
-
+def publish_page(header: Header, track_files: list[str]): # FIXME
+    def button_actions(value, response):
+        match value:
+            case 'btn_go_index':
+                index_page()
+            case 'btn_url':
+                run_js(r"""
+                navigator.clipboard.writeText(
+                "URL"
+                ).then(function() {}, function(err) {
+                    console.error('Could not copy text: ', err);
+                });
+                """.replace('URL', response.json()['files']['header.json']['raw_url']),)
+                toast(
+                    content='Скопировано',
+                    duration=3, color='info',)
     
-    response = requests.post(
-        url=URL, headers=headers, data=json.dumps(new_content)
-    )
-    
-    with use_scope('inputs', clear=True):
-        if response.status_code == 201:
-            popup(title='Трек добавлен!', content=[
-                put_buttons(['OK'], onclick=lambda _: close_popup()),
-                put_textarea(
-                    name='text',
-                    value=response.json()['files']['header.json']['raw_url'],),
-            ])
-        else:
-            popup('Ошибка!', [
-                put_buttons(['Не OK :с'], onclick=lambda _: close_popup()),
-                put_markdown(str(response.status_code))
-            ])
-
-def publish_page(SOME_PARSED_DATA=None): # FIXME
     with use_scope('title', clear=True):
         put_markdown('# Публикуем трек в плейлист')
     
@@ -796,6 +713,138 @@ def publish_page(SOME_PARSED_DATA=None): # FIXME
     
     with use_scope('inputs', clear=True):
         put_processbar('loading_bar', 0.5).style(STYLE_MARGIN_TOP)
+
+    # req_content = {
+    #     'description': header.song_author + header.song_name,
+    #     'public': True,
+    #     'files': {
+    #         'header.json': {
+    #             'content': 'empty'
+    #         }
+    #     }
+    # }
+
+    req_content = {
+        'description': f'{header.author} — {header.name}',
+        'public': False,
+        'files': {},}
+
+    track_dict = req_content['files']
+    for i, track in enumerate(track_files):
+        track_dict[f'track_{i}.json'] = {'content': track,}
+
+    #try:
+    response = post_req(
+        url=API_URL, headers=REQ_HEADERS, 
+        data=json.dumps(req_content, separators=(',', ':'),),)
+    if response.status_code == 201:
+        put_markdown('### РАБОТАЕТ')
+        gist_id = response.json()['id']
+        
+        raws = []
+        for url in response.json()['files']:
+            raws.append(response.json()['files'][url]['raw_url'])
+
+        req_content = {
+            'files': {'header.json': {
+                'content':json.dumps(raws, separators=(',', ':'),)},},}
+        response = patch_req(
+            url=f'{API_URL}/{gist_id}', headers=REQ_HEADERS, 
+            data=json.dumps(req_content, separators=(',', ':'),),)
+        
+        if response.status_code == 200:
+            with use_scope('inputs', clear=True,):
+                put_buttons(
+                    [  
+                        dict(label=i[0], value=i[1], color=i[2])  
+                        for i in [
+                            ['Ссылка', 'btn_url', 'primary'],
+                            ['Индекс', 'btn_go_index', 'primary'],]  
+                    ],
+                    onclick=lambda value: button_actions(value, response),)
+        else:
+            put_markdown('### ПОЛНЫЙ ОТВАЛ')
+            print(response.json())
+    else:
+        put_markdown('### ПОЛНЫЙ ОТВАЛ')
+
+    
+
+    
+
+    
+
+    
+    # except Exception as ex:
+    #     print(ex.__str__(),)
+
+    #print(response.status_code)
+    
+    
+
+    #     req_content = {
+    #         'files': {},
+    #     }
+
+    #     for element in sepparated:
+    #         content = json.dumps(element, separators=(',', ':'))
+            
+    #         req_content['files'].update(
+    #             {
+    #                 f'track_{sepparated.index(element)}.json': {
+    #                     'content': content,
+    #                 }
+    #             }
+    #         )
+        
+    #     response = requests.patch(
+    #         url=URL + gist_id, headers=req_headers, data=json.dumps(req_content)
+    #     )
+
+    #     print(response.status_code)
+
+    #     if response.status_code == 200:
+    #         links = []
+    #         for i in range(len(sepparated)):
+    #             links.append(gist_raw_url + 'track_' + str(i) + '.json')
+
+    #         track_header = [
+    #             header.song_author,
+    #             header.song_name,
+    #             header.loop,
+    #             header.max_loop_count,
+    #             header.loop_start,
+    #             links,
+    #         ]
+
+    #         req_content = {
+    #             'files': {
+    #                 'header.json': {
+    #                     'content': json.dumps(track_header)
+    #                 }
+    #             },
+    #         }
+
+    #         response = requests.patch(
+    #             url=URL + gist_id, headers=req_headers, 
+    #             data=json.dumps(req_content)
+    #         )
+
+    #         print(response.status_code)
+
+    #         if response.status_code == 200:
+    #             with use_scope('inputs', clear=True):
+    #                 popup(title='Трек добавлен!', content=[
+    #                     put_buttons(['OK'], onclick=lambda _: close_popup()),
+    #                     put_textarea(
+    #                         name='text',
+    #                         value=response.json()['files']['header.json']['raw_url'],),
+    #                 ])
+
+    
+    # response = requests.post(
+    #     url=URL, headers=headers, data=json.dumps(new_content)
+    # )
 
 def show_published_track():
     pass

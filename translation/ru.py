@@ -119,3 +119,7 @@ class OverviewPage:
 
 class CheckDuplicatesPage:
     pass
+
+
+class ParseNbsPage:
+    pass
