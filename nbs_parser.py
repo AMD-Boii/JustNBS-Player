@@ -286,6 +286,9 @@ def separate_sequence(sequence: list[list, int, str]) -> list[list]:
     return separated_data
 
 def dump_data(separated_data: list[list]) -> list[str]:
+    """
+    TODO
+    """
     dumped_data = []
     for element in separated_data:
         dumped_data.append(json.dumps(element, separators=(',', ':'),),)

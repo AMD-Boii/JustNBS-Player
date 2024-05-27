@@ -38,6 +38,8 @@ try:
 except:
     JUSTNBS_GIST_ID = None
 
+GITHUB_USER: str
+
 STYLE_MARGIN_TOP = r'margin-top:20px;'
 
 
@@ -73,9 +75,10 @@ def main():
     LANG = translate.Main
 
     def check_token():
+        global GITHUB_USER
         LANG = translate.Main
 
-        test_token = get_req(url=API_URL[:-5]+'user', headers=REQ_HEADERS)
+        test_token = get_req(url=f'{API_URL[:-5]}user', headers=REQ_HEADERS)
 
         if test_token.status_code == 403:
             remove('title')
@@ -87,7 +90,9 @@ def main():
             remove('content')
             remove('inputs')
             put_markdown(LANG.INVALID_GIST_ACCESS_TOKEN)
-
+        else:
+            GITHUB_USER = test_token.json()['login']
+    
     set_env(title=LANG.TAB_TITLE)
     # run_js("$('head link[rel=icon]').attr('href', image_url)", 
     #        image_url="https://www.python.org/static/favicon.ico")
@@ -659,10 +664,7 @@ def edit_header_page(nbs_data: tuple[Header, list, list,],
         change_author_buttons()
         pin_on_change(
             'inp_author', onchange=lambda _: check_author(),
-            clear=True, init_run=True,)
-        
-        
-            
+            clear=True, init_run=True,)    
         put_input(
             'inp_name', label='Название трека', value=header.name, type=TEXT,
             help_text=f'Максимум {char_tag_by_num(NAME_MAX)}',).style(STYLE_MARGIN_TOP)
@@ -713,7 +715,8 @@ def edit_header_page(nbs_data: tuple[Header, list, list,],
             ],
             onclick=lambda value: button_actions(value),).style(STYLE_MARGIN_TOP)
 
-def overview_page(nbs_data: tuple[Header, list, list,], nickname: str): # TODO
+def overview_page(nbs_data: tuple[Header, list, list,], 
+                  nickname: str, upload: dict): # TODO
     LANG = translate.OverviewPage
     header = nbs_data[0]
 
@@ -724,7 +727,7 @@ def overview_page(nbs_data: tuple[Header, list, list,], nickname: str): # TODO
             case 'btn_parse':
                 parse_nbs_page(nbs_data, nickname)
             case 'btn_go_back':
-                edit_header_page(nbs_data, nickname)
+                edit_header_page(nbs_data, nickname, upload)
 
     with use_scope('title', clear=True):
         put_markdown('# Предварительный просмотр')
@@ -773,35 +776,11 @@ def overview_page(nbs_data: tuple[Header, list, list,], nickname: str): # TODO
             [  
                 dict(label=i[0], value=i[1], color=i[2])  
                 for i in [
-                    #['К проверке дублей', 'btn_check_duplicates', 'primary'],
                     ['К парсингу', 'btn_parse', 'primary'],
                     ['Назад', 'btn_go_back', 'danger'],
                 ]  
             ],
             onclick=lambda value: button_actions(value),).style(STYLE_MARGIN_TOP)
-
-# FIXME Бесполезно и трудоемко. Треки все равно публикуются в temporal
-
-# def check_duplicates_page(nbs_data: tuple[Header, list, list,], 
-#                           nickname: str, check=None): # FIXME
-#     LANG = translate.CheckDuplicatesPage
-#     header = nbs_data[0]
-
-#     def button_actions(value):
-#         match value:
-#             case 'btn_check_duplicates':
-#                 check_duplicates_page(nbs_data)
-#             case 'btn_go_back':
-#                 edit_header_page(nbs_data)
-
-#     with use_scope('title', clear=True):
-#         put_markdown('# Проверяем наличие схожих треков')
-    
-#     with use_scope('content', clear=True):
-#         put_markdown('### Пожалуйста, подождите')
-    
-#     with use_scope('inputs', clear=True):
-#         pass
 
 def parse_nbs_page(nbs_data: tuple[Header, list, list,], 
                    nickname: str, check=None): # FIXME
