@@ -131,11 +131,13 @@ def index_page(nickname: str = ''):
     total_uploaded = 0
 
     run_js(r"window.onbeforeunload = null")
+    close_popup()
 
     def show_latests(): # TODO
         pass
 
     def button_actions(action: str):
+        nonlocal nickname
         match action:
             case 'btn_go_inp_nick':
                 input_nickname_page(nickname)
@@ -237,7 +239,8 @@ def index_page(nickname: str = ''):
             ],
             onclick=lambda action: button_actions(action),)
 
-def input_nickname_page(nickname: str = ''):
+def input_nickname_page(nickname: str, upload: Optional[dict] = None,
+                        nbs_data: Optional[tuple[Header, list, list,],] = None):
     LANG = translate.InputNicknamePage
     NICKNAME_MIN = 3
     NICKNAME_MAX = 16
@@ -257,6 +260,9 @@ def input_nickname_page(nickname: str = ''):
             nickname = pin.inp_nickname
 
     def button_actions(action: str):
+        nonlocal upload
+        nonlocal nickname
+        nonlocal nbs_data
         match action:
             case 'btn_go_upload':
                 if len(nickname) < NICKNAME_MIN:
@@ -264,9 +270,15 @@ def input_nickname_page(nickname: str = ''):
                         content='Слишком короткий никнейм',
                         duration=3, color='red',)
                 else:
-                    upload_page(nickname)
+                    upload_page(nbs_data, nickname, upload)
             case 'btn_cancel':
-                index_page(nickname)
+                if not upload is None:
+                    popup('Вы уверены?', [
+                        put_markdown('Все изменения будут потеряны'),
+                        put_buttons(['Уверен'], onclick=lambda _: index_page(nickname))
+                    ])
+                else:
+                    index_page(nickname)
     
     with use_scope('title', clear=True):
         put_markdown('# Приступим')
@@ -289,44 +301,63 @@ def input_nickname_page(nickname: str = ''):
                 dict(label=i[0], value=i[1], color=i[2])  
                 for i in [
                     ['К загрузке', 'btn_go_upload', 'primary'],
-                    ['Отмена', 'btn_go_index', 'danger'],]  
+                    ['Отмена', 'btn_cancel', 'danger'],]  
             ],
             onclick=lambda value: button_actions(value),).style(STYLE_MARGIN_TOP)
 
-def upload_page(nickname: str, upload: Optional[dict] = None):
+def upload_page(nbs_data: Optional[tuple[Header, list, list,],],
+                nickname: str, upload: Optional[dict],):
     LANG = translate.UploadPage
     MAX_SIZE = 256 # KB
     MAX_SUMMARY = 1048576 # 1 MB
 
+    def go_further():
+        nonlocal upload
+        nonlocal nbs_data
+        if nbs_data is None:
+            nbs_data = get_nbs_data(BytesIO(upload['content']),)
+        if isinstance(nbs_data, str):
+            print(nbs_data) # FIXME вывод ошибки
+            toast(
+                content='Неверный или поврежденный файл', # TODO
+                duration=3, color='red',)
+        elif not nbs_data[0].old_tempo in TEMPO:
+            fix_tempo_page(nbs_data, nickname, upload)
+        else:
+            edit_header_page(nbs_data, nickname, upload)
+
     def button_actions(value):
         global total_uploaded
+        nonlocal upload
+        nonlocal nbs_data
         match value:
             case 'btn_upload':
                 if total_uploaded > MAX_SUMMARY:
                         toast(
-                            content='Превышен загрузочный лимит! Не надо тратить трафик впустую!',
+                            content='Превышен загрузочный лимит! ' + 
+                                'Не надо тратить трафик впустую!',
                             duration=3, color='red',)
                 else:
-                    upload = pin.uploaded_file
                     if upload is None:
-                        toast(
-                            content=LANG.PICK_A_FILE_FIRST,
-                            duration=3, color='info',)
-                    else:
-                        content = upload['content']
-                        total_uploaded += getsizeof(content)
-                        nbs_data = get_nbs_data(BytesIO(content),)
-                        if isinstance(nbs_data, str):
-                            print(nbs_data)
+                        upload = pin.uploaded_file
+                        if upload is None:
                             toast(
-                                content='Неверный или поврежденный файл', # TODO
-                                duration=3, color='red',)
-                        elif not nbs_data[0].old_tempo in TEMPO:
-                            fix_tempo_page(nbs_data, nickname)
+                                content=LANG.PICK_A_FILE_FIRST,
+                                duration=3, color='info',)
                         else:
-                            edit_header_page(nbs_data, nickname)
+                            nbs_data = get_nbs_data(BytesIO(upload['content']),)
+                            total_uploaded += getsizeof(upload['content'])
+                            go_further()
+                    else:
+                        new_upload = pin.uploaded_file
+                        if not new_upload is None:
+                            nbs_data = get_nbs_data(BytesIO(upload['content']),)
+                            total_uploaded += getsizeof(upload['content'])
+                            upload = new_upload
+                        go_further()
+                        
             case 'btn_go_back':
-                input_nickname_page(nickname)
+                input_nickname_page(nickname, upload, nbs_data)
 
     with use_scope('title', clear=True,):
         put_markdown(LANG.CHOOSE_FILE)
@@ -337,24 +368,26 @@ def upload_page(nickname: str, upload: Optional[dict] = None):
     with use_scope('inputs', clear=True,):
         put_file_upload(
             name='uploaded_file',
-            label=filename,
+            label='Загрузите',
             accept='.nbs',
             max_size=f'{MAX_SIZE}K',
-            placeholder=LANG.PLACEHOLDER,
+            placeholder=f'Уже загружен: {upload['filename']}' if not upload is None else LANG.PLACEHOLDER,
             help_text=LANG.MAX_SIZE.replace('MAX', str(MAX_SIZE))).style(STYLE_MARGIN_TOP)
+        ##pin.uploaded_file = upload
+        #print(pin.upload_file)
         put_buttons(
             [  
                 dict(label=i[0], value=i[1], color=i[2])  
                 for i in [
-                    [LANG.UPLOAD, 'btn_upload', 'primary'],
+                    [LANG.UPLOAD if upload is None else 'Продолжить', 'btn_upload', 'primary'],
                     ['Назад', 'btn_go_back', 'warning'],
                     ['Отмена', 'btn_go_index', 'danger'],]  
             ],
             onclick=lambda value: button_actions(value),).style(STYLE_MARGIN_TOP)
         # pin_wait_change('uploaded_file')
 
-
-def custom_instuments_page(nbs_data: tuple[Header, list, list,], nickname: str): # TODO
+def custom_instuments_page(nbs_data: tuple[Header, list, list,], 
+                           nickname: str): # TODO
     pass
     # def button_actions(value):
     #     match value:
@@ -382,20 +415,22 @@ def custom_instuments_page(nbs_data: tuple[Header, list, list,], nickname: str):
     #         ],
     #         onclick=lambda value: button_actions(value),)
 
-def fix_tempo_page(nbs_data: tuple[Header, list, list,], nickname: str):
+def fix_tempo_page(nbs_data: tuple[Header, list, list,], 
+                   nickname: str, upload: dict):
     LANG = translate.FixTempoPage
     header = nbs_data[0]
 
     def button_actions(value):
+        #nonlocal upload
         match value:
             case 'btn_edit_header':
                 header.tempo = pin.new_tempo[0]
                 header.tick_delay = pin.new_tempo[1]
                 header.duration = header.tick_delay*header.length//20
                 header.duration_string = get_duration_string(header.duration)
-                edit_header_page(nbs_data, nickname)
+                edit_header_page(nbs_data, nickname, upload)
             case 'btn_go_back':
-                upload_page(nickname)
+                upload_page(nbs_data, nickname, upload)
     
     with use_scope('title', clear=True):
         put_markdown(LANG.UNSUPPORTED_TEMPO)
@@ -421,7 +456,8 @@ def fix_tempo_page(nbs_data: tuple[Header, list, list,], nickname: str):
             ],
             onclick=lambda value: button_actions(value),).style(STYLE_MARGIN_TOP)
 
-def edit_header_page(nbs_data: tuple[Header, list, list,], nickname: str):
+def edit_header_page(nbs_data: tuple[Header, list, list,], 
+                     nickname: str, upload: dict):
     LANG = translate.EditHeaderPage
     LOOP_MAX = 128
     AUTHOR_MAX = 24
@@ -432,8 +468,9 @@ def edit_header_page(nbs_data: tuple[Header, list, list,], nickname: str):
 
     def change_author_buttons():
         nonlocal author_last_pressed
-
-        if header.old_author == header.old_original:
+        if (header.old_author == header.old_original) or (
+                header.old_author == '') or (
+                    header.old_original == ''):
             remove('markdown')
             if not author_last_pressed is None:
                 author_last_pressed = None
@@ -557,6 +594,7 @@ def edit_header_page(nbs_data: tuple[Header, list, list,], nickname: str):
 
     def button_actions(value):
         nonlocal author_last_pressed
+        nonlocal upload
         match value:
             case 'btn_loop_count_minus':
                 pin.inp_loop_count -= 1
@@ -579,30 +617,30 @@ def edit_header_page(nbs_data: tuple[Header, list, list,], nickname: str):
                 check_loop_count()
 
             case 'use_song_author':
-                if author_last_pressed == header.old_original or (
+                if (author_last_pressed == header.old_original) or (
                                                 author_last_pressed is None):
                     pin.inp_author = header.author = header.old_author
                     check_author()
             case 'use_origin_author':
-                if author_last_pressed == header.old_author or (
+                if (author_last_pressed == header.old_author) or (
                                                 author_last_pressed is None):
                     pin.inp_author = header.author = header.old_original
                     check_author()
             
             case 'btn_author_def':
-                pin.inp_author = header.old_author
+                pin.inp_author = header.default_author
                 check_author()
             case 'btn_name_def':
                 pin.inp_name = header.old_name
                 check_name()
                     
             case 'btn_go_overview':
-                overview_page(nbs_data, nickname)
+                overview_page(nbs_data, nickname, upload)
             case 'btn_go_back':
                 if header.old_tempo in TEMPO:
-                    upload_page(nickname)
+                    upload_page(nbs_data, nickname, upload)
                 else:
-                    fix_tempo_page(nbs_data, nickname)
+                    fix_tempo_page(nbs_data, nickname, upload)
 
     with use_scope('title', clear=True):
         put_markdown('# Подготовка к публикации')

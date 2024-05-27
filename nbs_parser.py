@@ -10,6 +10,8 @@ from dataclasses import dataclass
 from io import BytesIO
 from pynbs import Layer, Note, Parser, Instrument # TODO
 
+from re import sub
+
 import json
 
 TEMPO = (
@@ -60,6 +62,8 @@ class Header:
     loop_count: int
     loop_start: int
     
+    default_author: str
+
     old_author: str
     old_original: str
     old_name: str
@@ -68,6 +72,12 @@ class Header:
     old_loop_count: int
     old_loop_start: int
 
+
+def get_default_author(old_author, old_original):
+    if (old_author == old_original) or (old_original == ''):
+        return old_author
+    else:
+        return old_original
 
 def get_duration_string(seconds: int) -> str:
     """
@@ -91,11 +101,19 @@ def get_nbs_data(nbs_file: BytesIO) -> Union[tuple[Header,
     
     old = nbs_data.header
 
+    old.song_author = sub(r'\s+', ' ', old.song_author.strip(),)
+    old.original_author = sub(r'\s+', ' ', old.original_author.strip(),)
+    old.song_name = sub(r'\s+', ' ', old.song_name.strip(),)
+
+    default_author = get_default_author(old.song_author, old.original_author)
+
     seconds = (TEMPO.index(old.tempo)+1)*old.song_length//20 if (
         old.tempo in TEMPO) else 0
 
     header = Header(
-        author=old.song_author,
+        author=default_author if (
+                (old.song_author == '') or (old.original_author == '')
+            ) else old.song_author,
         name=old.song_name,
         tempo=old.tempo,
         length=old.song_length,
@@ -105,6 +123,8 @@ def get_nbs_data(nbs_file: BytesIO) -> Union[tuple[Header,
         loop=False,
         loop_count=old.max_loop_count,
         loop_start=old.loop_start,
+
+        default_author=default_author,
 
         old_author=old.song_author,
         old_original=old.original_author,
