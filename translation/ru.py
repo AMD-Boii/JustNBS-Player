@@ -7,22 +7,16 @@ class Main:
     LOGO = r'logo_ru.jpg'
 
     CONTACT_WITH_ME = """
-        ### Свяжитесь с @AMD Boii [в Discord](https://discord.justmc.ru/) либо на сервере JustMC.
+        ### Свяжитесь с @AMD Boii в [Discord](https://discord.justmc.ru/) либо на сервере JustMC.
     """
 
     NO_JUSTNBS_GIST_ID = r'# ОТСУТСТВУЕТ JUSTNBS_GIST_ID В ПЕРЕМЕННЫХ СРЕДЫ' + CONTACT_WITH_ME
     WRONG_JUSTNBS_GIST_ID_FORMAT = r'# НЕВЕРНЫЙ ФОРМАТ ИЛИ ПОВРЕЖДЕН JUSTNBS_GIST_ID' + CONTACT_WITH_ME
 
-    NO_ACTUAL_PLAYLIST_RAW = r'# ОТСУТСТВУЕТ ACTUAL_PLAYLIST_RAW В ПЕРЕМЕННЫХ СРЕДЫ' + CONTACT_WITH_ME
-    WRONG_ACTUAL_PLAYLIST_RAW_FORMAT = r'# НЕВЕРНЫЙ ФОРМАТ ИЛИ ПОВРЕЖДЕН ACTUAL_PLAYLIST_RAW' + CONTACT_WITH_ME
+    NO_GIST_ACCESS_TOKEN = r'# ОТСУТСТВУЕТ GIST_ACCESS_TOKEN В ПЕРЕМЕННЫХ СРЕДЫ' + CONTACT_WITH_ME
+    WRONG_GIST_ACCESS_TOKEN_FORMAT = r'# НЕВЕРНЫЙ ФОРМАТ ИЛИ ПОВРЕЖДЕН GIST_ACCESS_TOKEN' + CONTACT_WITH_ME
 
-    NO_LATEST_TRACKS_RAW = r'# ОТСУТСТВУЕТ LATESTS_RAW В ПЕРЕМЕННЫХ СРЕДЫ' + CONTACT_WITH_ME
-    WRONG_LATEST_TRACKS_RAW_FORMAT = r'# НЕВЕРНЫЙ ФОРМАТ ИЛИ ПОВРЕЖДЕН LATESTS_RAW' + CONTACT_WITH_ME
-
-    NO_GISTS_ACCESS_TOKEN = r'# ОТСУТСТВУЕТ GISTS_ACCESS_TOKEN В ПЕРЕМЕННЫХ СРЕДЫ' + CONTACT_WITH_ME
-    WRONG_GISTS_ACCESS_TOKEN_FORMAT = r'# НЕВЕРНЫЙ ФОРМАТ ИЛИ ПОВРЕЖДЕН GISTS_ACCESS_TOKEN' + CONTACT_WITH_ME
-
-    INVALID_GISTS_ACCESS_TOKEN = r'# НЕДЕЙСТВИТЕЛЬНЫЙ GISTS_ACCESS_TOKEN' + CONTACT_WITH_ME
+    INVALID_GIST_ACCESS_TOKEN = r'# НЕДЕЙСТВИТЕЛЬНЫЙ GIST_ACCESS_TOKEN' + CONTACT_WITH_ME
 
     REACHED_API_LIMIT = """
         # ДОСТИГНУТ ЛИМИТ ЗАПРОСОВ К GITHUB API
@@ -74,11 +68,9 @@ class IndexPage:
 
 
 class InputNicknamePage:
-    pass
-
-class UploadPage:
     REFRESH_WARNING = r'Вы уверены, что хотите покинуть эту страницу?'
 
+class UploadPage:
     CHOOSE_FILE = r'# Выберите файл для загрузки'
 
     UPLOAD_RULES = r'правила загрузки'

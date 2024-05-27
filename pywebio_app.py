@@ -14,6 +14,7 @@ from pywebio.session import set_env, info as session_info, run_js
 from os import environ, path
 from requests import get as get_req, post as post_req, patch as patch_req
 from re import fullmatch, sub
+from sys import getsizeof
 
 from io import BytesIO
 
@@ -28,7 +29,7 @@ try:
     try:
         REQ_HEADERS = {
             'Accept': 'application/vnd.github+json',
-            'Authorization': f'Bearer {environ['GISTS_ACCESS_TOKEN']}',
+            'Authorization': f'Bearer {environ['GIST_ACCESS_TOKEN']}',
             'X-GitHub-Api-Version': '2022-11-28',}
         API_URL = 'https://api.github.com/gists'
     except:
@@ -37,6 +38,9 @@ except:
     JUSTNBS_GIST_ID = None
 
 STYLE_MARGIN_TOP = r'margin-top:20px;'
+
+
+total_uploaded: int = 0
 
 
 def char_tag_by_num(number: int) -> str:
@@ -81,7 +85,7 @@ def main():
             remove('title')
             remove('content')
             remove('inputs')
-            put_markdown(LANG.INVALID_GISTS_ACCESS_TOKEN)
+            put_markdown(LANG.INVALID_GIST_ACCESS_TOKEN)
 
     set_env(title=LANG.TAB_TITLE)
     # run_js("$('head link[rel=icon]').attr('href', image_url)", 
@@ -99,34 +103,41 @@ def main():
         put_markdown(LANG.WRONG_JUSTNBS_GIST_ID_FORMAT)
 
     elif REQ_HEADERS is None:
-        put_markdown(LANG.NO_GISTS_ACCESS_TOKEN)
-    elif not bool(fullmatch(r'[0-9a-zA-Z]{36}', 
-                            REQ_HEADERS['Authorization'][-36:]),):
-        put_markdown(LANG.WRONG_GISTS_ACCESS_TOKEN_FORMAT)
+        put_markdown(LANG.NO_GIST_ACCESS_TOKEN)
+    elif not bool(
+            fullmatch(r'[0-9a-zA-Z]{36}', REQ_HEADERS['Authorization'][-36:]),
+        ) and not (
+            REQ_HEADERS['Authorization'][-40:][:4] == 'ghp_'
+        ):
+        put_markdown(LANG.WRONG_GIST_ACCESS_TOKEN_FORMAT)
     else:
         try:
             with use_scope('image', clear=True,):
                 put_image(
-                    open(path.join('resources', LANG.LOGO,), 'rb').read(),)
+                    open(path.join('resources', None,), 'rb').read(),)
+                # put_image(
+                #     open(path.join('resources', LANG.LOGO,), 'rb').read(),)
         except:
             with use_scope('image', clear=True,):
                 put_markdown('# NO_IMAGE')
         index_page()
-        #publish_page()
         check_token()
     
-def index_page():
+def index_page(nickname: str = ''):
+    global total_uploaded
     LANG = translate.IndexPage
+
+    total_uploaded = 0
 
     run_js(r"window.onbeforeunload = null")
 
     def show_latests(): # TODO
         pass
 
-    def button_actions(value):
-        match value:
+    def button_actions(action):
+        match action:
             case 'btn_go_inp_nick':
-                input_nickname_page()
+                input_nickname_page(nickname)
             case 'btn_res_pack':
                 run_js(r"""
                 navigator.clipboard.writeText(
@@ -166,7 +177,7 @@ def index_page():
                             for i in [
                                 [LANG.B_GHUB_REPO, 'btn_github_repo', 'info'],]  
                         ],
-                        onclick=lambda value: button_actions(value),),
+                        onclick=lambda action: button_actions(action),),
                 ],
             },
             {
@@ -179,7 +190,7 @@ def index_page():
                             for i in [
                                 [LANG.B_RES_LINK, 'btn_res_pack', 'info'],]  
                         ],
-                        onclick=lambda value: button_actions(value),),
+                        onclick=lambda action: button_actions(action),),
                 ],
             },
             {
@@ -197,7 +208,7 @@ def index_page():
                             for i in [
                                 [LANG.B_REFRESH, 'btn_refresh_recent', 'info'],]  
                         ],
-                        onclick=lambda value: button_actions(value),),
+                        onclick=lambda action: button_actions(action),),
                 ],
             },
             {
@@ -210,7 +221,7 @@ def index_page():
                             for i in [
                                 [LANG.B_DOWN_ONBS, 'btn_onbs_dwnld', 'danger'],]  
                         ],
-                        onclick=lambda value: button_actions(value),),
+                        onclick=lambda action: button_actions(action),),
                 ],
             },],
         )
@@ -223,44 +234,48 @@ def index_page():
                     [LANG.B_UPLOAD, 'btn_go_inp_nick', 'primary'],
                     [LANG.B_SEARCH, 'btn_go_search', 'primary'],]  
             ],
-            onclick=lambda value: button_actions(value),)
+            onclick=lambda action: button_actions(action),)
 
-def input_nickname_page(nickname=''):
+def input_nickname_page(nickname: str):
     LANG = translate.InputNicknamePage
     NICKNAME_MIN = 3
     NICKNAME_MAX = 16
 
-    run_js(r"window.onbeforeunload = null")
+    run_js(r"""
+    window.onbeforeunload = function() {
+        return "WARNING";
+    }
+    """.replace('WARNING', LANG.REFRESH_WARNING),)
 
     def check_nickname():
         nonlocal nickname
         if not pin.inp_nickname is None:
-            pin.inp_nickname = sub(r'[^a-zA-Z0-9_]', '', pin.inp_nickname)
+            pin.inp_nickname = sub(r'[^0-9a-zA-Z_]', '', pin.inp_nickname)
             if len(pin.inp_nickname) > NICKNAME_MAX:
                 pin.inp_nickname = pin.inp_nickname[:NICKNAME_MAX]
+            nickname = pin.inp_nickname
 
-    def button_actions(value):
-        match value:
+    def button_actions(action):
+        match action:
             case 'btn_go_upload':
-                if len(pin.inp_nickname) < NICKNAME_MIN:
+                if len(nickname) < NICKNAME_MIN:
                     toast(
                         content='Слишком короткий никнейм',
                         duration=3, color='red',)
                 else:
-                    nickname = pin.inp_nickname
                     upload_page(nickname)
-            case 'btn_go_back':
-                index_page()
+            case 'btn_cancel':
+                index_page(nickname)
     
     with use_scope('title', clear=True):
         put_markdown('# Приступим')
     
     with use_scope('content', clear=True):
-        put_markdown('### Ваш никнейм может потребоваться для помещения трека в актуальный плейлист')
+        put_markdown('### Ваш никнейм требуется для помещения трека в актуальный плейлист после проверки')
     
     with use_scope('inputs', clear=True,):
         put_input(
-            'inp_nickname', label='Введите ваш ник на сервере',
+            'inp_nickname', label='Введите ваш никнейм на сервере',
             value=nickname, type=TEXT,
             help_text=f'Минимум {char_tag_by_num(NICKNAME_MIN)} / Максимум {char_tag_by_num(NICKNAME_MAX)} / Символы 0-9 a-z A-Z _',
         ).style(STYLE_MARGIN_TOP)
@@ -273,38 +288,42 @@ def input_nickname_page(nickname=''):
                 dict(label=i[0], value=i[1], color=i[2])  
                 for i in [
                     ['К загрузке', 'btn_go_upload', 'primary'],
-                    ['На главную', 'btn_go_back', 'danger'],]  
+                    ['Отмена', 'btn_go_index', 'danger'],]  
             ],
             onclick=lambda value: button_actions(value),).style(STYLE_MARGIN_TOP)
 
-def upload_page(nickname: str):
+def upload_page(nickname: str, is_uploaded: bool = False):
     LANG = translate.UploadPage
-    MAX_SIZE = 250
-
-    run_js(r"""
-    window.onbeforeunload = function() {
-        return "WARNING";
-    }
-    """.replace('WARNING', LANG.REFRESH_WARNING),)
+    MAX_SIZE = 256 # KB
+    MAX_SUMMARY = 1048576 # 1 MB
 
     def button_actions(value):
+        global total_uploaded
         match value:
             case 'btn_upload':
-                if pin.uploaded_file is None:
-                    toast(
-                        content=LANG.PICK_A_FILE_FIRST,
-                        duration=3, color='info',)
-                else:
-                    nbs_data = get_nbs_data(BytesIO(pin.uploaded_file['content']),)
-                    if isinstance(nbs_data, str):
-                        print(nbs_data)
+                if total_uploaded > MAX_SUMMARY:
                         toast(
-                            content='НЕВЕРНЫЕ ДАННЫЕ', # TODO
+                            content='Превышен загрузочный лимит! Не надо тратить трафик впустую!',
                             duration=3, color='red',)
-                    elif not nbs_data[0].old_tempo in TEMPO:
-                        fix_tempo_page(nbs_data, nickname)
+                else:
+                    upload = pin.uploaded_file
+                    if upload is None:
+                        toast(
+                            content=LANG.PICK_A_FILE_FIRST,
+                            duration=3, color='info',)
                     else:
-                        edit_header_page(nbs_data, nickname)
+                        content = upload['content']
+                        total_uploaded += getsizeof(content)
+                        nbs_data = get_nbs_data(BytesIO(content),)
+                        if isinstance(nbs_data, str):
+                            print(nbs_data)
+                            toast(
+                                content='Неверный или поврежденный файл', # TODO
+                                duration=3, color='red',)
+                        elif not nbs_data[0].old_tempo in TEMPO:
+                            fix_tempo_page(nbs_data, nickname)
+                        else:
+                            edit_header_page(nbs_data, nickname)
             case 'btn_go_back':
                 input_nickname_page(nickname)
 
@@ -319,14 +338,16 @@ def upload_page(nickname: str):
             name='uploaded_file',
             label='Выберите файл для загрузки',
             accept='.nbs',
-            max_size=f'{MAX_SIZE}K', placeholder=LANG.PLACEHOLDER,
+            max_size=f'{MAX_SIZE}K',
+            placeholder=LANG.PLACEHOLDER,
             help_text=LANG.MAX_SIZE.replace('MAX', str(MAX_SIZE))).style(STYLE_MARGIN_TOP)
         put_buttons(
             [  
                 dict(label=i[0], value=i[1], color=i[2])  
                 for i in [
                     [LANG.UPLOAD, 'btn_upload', 'primary'],
-                    ['Назад', 'btn_go_back', 'danger'],]  
+                    ['Назад', 'btn_go_back', 'warning'],
+                    ['Отмена', 'btn_go_index', 'danger'],]  
             ],
             onclick=lambda value: button_actions(value),).style(STYLE_MARGIN_TOP)
 
