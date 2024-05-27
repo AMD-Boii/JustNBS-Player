@@ -39,6 +39,20 @@ except:
 STYLE_MARGIN_TOP = r'margin-top:20px;'
 
 
+def char_tag_by_num(number: int) -> str:
+        forms = ['символ', 'символа', 'символов']
+        
+        if number == 1:
+            return f'{number} {forms[0]}'
+        elif 11 <= number % 100 <= 19:
+            return f'{number} {forms[2]}'
+        elif number % 10 == 1:
+            return f'{number} {forms[0]}'
+        elif 2 <= number % 10 <= 4:
+            return f'{number} {forms[1]}'
+        else:
+            return f'{number} {forms[2]}'
+
 @config(theme='dark')
 def main():
     global translate
@@ -51,10 +65,10 @@ def main():
     # ЗАГЛУШКА ДЛЯ РАЗРАБОТКИ
     import translation.ru as translate
 
-    lang = translate.Main
+    LANG = translate.Main
 
     def check_token():
-        lang = translate.Main
+        LANG = translate.Main
 
         test_token = get_req(url=API_URL[:-5]+'user', headers=REQ_HEADERS)
 
@@ -62,14 +76,14 @@ def main():
             remove('title')
             remove('content')
             remove('inputs')
-            put_markdown(lang.REACHED_API_LIMIT)
+            put_markdown(LANG.REACHED_API_LIMIT)
         elif test_token.status_code != 200:
             remove('title')
             remove('content')
             remove('inputs')
-            put_markdown(lang.INVALID_GISTS_ACCESS_TOKEN)
+            put_markdown(LANG.INVALID_GISTS_ACCESS_TOKEN)
 
-    set_env(title=lang.TAB_TITLE)
+    set_env(title=LANG.TAB_TITLE)
     # run_js("$('head link[rel=icon]').attr('href', image_url)", 
     #        image_url="https://www.python.org/static/favicon.ico")
     
@@ -80,20 +94,20 @@ def main():
     put_scope('latest_tracks', position=4,)
 
     if JUSTNBS_GIST_ID is None:
-        put_markdown(lang.NO_JUSTNBS_GIST_ID)
+        put_markdown(LANG.NO_JUSTNBS_GIST_ID)
     elif not bool(fullmatch(r'[0-9a-f]{32}', JUSTNBS_GIST_ID),):
-        put_markdown(lang.WRONG_JUSTNBS_GIST_ID_FORMAT)
+        put_markdown(LANG.WRONG_JUSTNBS_GIST_ID_FORMAT)
 
     elif REQ_HEADERS is None:
-        put_markdown(lang.NO_GISTS_ACCESS_TOKEN)
+        put_markdown(LANG.NO_GISTS_ACCESS_TOKEN)
     elif not bool(fullmatch(r'[0-9a-zA-Z]{36}', 
                             REQ_HEADERS['Authorization'][-36:]),):
-        put_markdown(lang.WRONG_GISTS_ACCESS_TOKEN_FORMAT)
+        put_markdown(LANG.WRONG_GISTS_ACCESS_TOKEN_FORMAT)
     else:
         try:
             with use_scope('image', clear=True,):
                 put_image(
-                    open(path.join('resources', lang.LOGO,), 'rb').read(),)
+                    open(path.join('resources', LANG.LOGO,), 'rb').read(),)
         except:
             with use_scope('image', clear=True,):
                 put_markdown('# NO_IMAGE')
@@ -102,7 +116,7 @@ def main():
         check_token()
     
 def index_page():
-    lang = translate.IndexPage
+    LANG = translate.IndexPage
 
     run_js(r"window.onbeforeunload = null")
 
@@ -111,8 +125,8 @@ def index_page():
 
     def button_actions(value):
         match value:
-            case 'btn_go_upload':
-                upload_page()
+            case 'btn_go_inp_nick':
+                input_nickname_page()
             case 'btn_res_pack':
                 run_js(r"""
                 navigator.clipboard.writeText(
@@ -122,7 +136,7 @@ def index_page():
                 });
                 """)
                 toast(
-                    content=lang.LINK_COPIED,
+                    content=LANG.LINK_COPIED,
                     duration=3, color='info',)
             case 'btn_onbs_dwnld':
                 run_js(r"""
@@ -137,64 +151,64 @@ def index_page():
                 index_page()
     
     with use_scope('title', clear=True):
-        put_markdown(lang.WELCOME)
+        put_markdown(LANG.WELCOME)
     
     with use_scope('content', clear=True):
         put_tabs(
             tabs=[
             {
-                'title': lang.ABOUT,
+                'title': LANG.ABOUT,
                 'content': [
-                    put_markdown(lang.ABOUT_CONTENT),
+                    put_markdown(LANG.ABOUT_CONTENT),
                     put_buttons(
                         [  
                             dict(label=i[0], value=i[1], color=i[2])  
                             for i in [
-                                [lang.B_GHUB_REPO, 'btn_github_repo', 'info'],]  
+                                [LANG.B_GHUB_REPO, 'btn_github_repo', 'info'],]  
                         ],
                         onclick=lambda value: button_actions(value),),
                 ],
             },
             {
-                'title': lang.INSTALLING,
+                'title': LANG.INSTALLING,
                 'content': [
-                    put_markdown(lang.INSTALLING_CONTENT),
+                    put_markdown(LANG.INSTALLING_CONTENT),
                     put_buttons(
                         [  
                             dict(label=i[0], value=i[1], color=i[2])  
                             for i in [
-                                [lang.B_RES_LINK, 'btn_res_pack', 'info'],]  
+                                [LANG.B_RES_LINK, 'btn_res_pack', 'info'],]  
                         ],
                         onclick=lambda value: button_actions(value),),
                 ],
             },
             {
-                'title': lang.REQS,
+                'title': LANG.REQS,
                 'content': [
-                    put_markdown(lang.REQS_CONTENT),],
+                    put_markdown(LANG.REQS_CONTENT),],
             },
             {
-                'title': lang.RECENT_TRACKS,
+                'title': LANG.RECENT_TRACKS,
                 'content': [
                     put_markdown('# TODO вывод последних'), #TODO
                     put_buttons(
                         [  
                             dict(label=i[0], value=i[1], color=i[2])  
                             for i in [
-                                [lang.B_REFRESH, 'btn_refresh_recent', 'info'],]  
+                                [LANG.B_REFRESH, 'btn_refresh_recent', 'info'],]  
                         ],
                         onclick=lambda value: button_actions(value),),
                 ],
             },
             {
-                'title': lang.HELP,
+                'title': LANG.HELP,
                 'content': [
-                    put_markdown(lang.HELP_CONTENT),
+                    put_markdown(LANG.HELP_CONTENT),
                     put_buttons(
                         [  
                             dict(label=i[0], value=i[1], color=i[2])  
                             for i in [
-                                [lang.B_DOWN_ONBS, 'btn_onbs_dwnld', 'danger'],]  
+                                [LANG.B_DOWN_ONBS, 'btn_onbs_dwnld', 'danger'],]  
                         ],
                         onclick=lambda value: button_actions(value),),
                 ],
@@ -206,64 +220,117 @@ def index_page():
             [  
                 dict(label=i[0], value=i[1], color=i[2])  
                 for i in [
-                    [lang.B_UPLOAD, 'btn_go_upload', 'primary'],
-                    [lang.B_SEARCH, 'btn_go_search', 'primary'],]  
+                    [LANG.B_UPLOAD, 'btn_go_inp_nick', 'primary'],
+                    [LANG.B_SEARCH, 'btn_go_search', 'primary'],]  
             ],
             onclick=lambda value: button_actions(value),)
 
-def upload_page():
-    lang = translate.UploadPage
-    max_size = 250
+def input_nickname_page(nickname=''):
+    LANG = translate.InputNicknamePage
+    NICKNAME_MIN = 3
+    NICKNAME_MAX = 16
+
+    run_js(r"window.onbeforeunload = null")
+
+    def check_nickname():
+        nonlocal nickname
+        if not pin.inp_nickname is None:
+            pin.inp_nickname = sub(r'[^a-zA-Z0-9_]', '', pin.inp_nickname)
+            if len(pin.inp_nickname) > NICKNAME_MAX:
+                pin.inp_nickname = pin.inp_nickname[:NICKNAME_MAX]
+
+    def button_actions(value):
+        match value:
+            case 'btn_go_upload':
+                if len(pin.inp_nickname) < NICKNAME_MIN:
+                    toast(
+                        content='Слишком короткий никнейм',
+                        duration=3, color='red',)
+                else:
+                    nickname = pin.inp_nickname
+                    upload_page(nickname)
+            case 'btn_go_back':
+                index_page()
+    
+    with use_scope('title', clear=True):
+        put_markdown('# Приступим')
+    
+    with use_scope('content', clear=True):
+        put_markdown('### Ваш никнейм может потребоваться для помещения трека в актуальный плейлист')
+    
+    with use_scope('inputs', clear=True,):
+        put_input(
+            'inp_nickname', label='Введите ваш ник на сервере',
+            value=nickname, type=TEXT,
+            help_text=f'Минимум {char_tag_by_num(NICKNAME_MIN)} / Максимум {char_tag_by_num(NICKNAME_MAX)} / Символы 0-9 a-z A-Z _',
+        ).style(STYLE_MARGIN_TOP)
+        pin_on_change(
+            'inp_nickname', onchange=lambda _: check_nickname(),
+            clear=True, init_run=True,)
+        
+        put_buttons(
+            [  
+                dict(label=i[0], value=i[1], color=i[2])  
+                for i in [
+                    ['К загрузке', 'btn_go_upload', 'primary'],
+                    ['На главную', 'btn_go_back', 'danger'],]  
+            ],
+            onclick=lambda value: button_actions(value),).style(STYLE_MARGIN_TOP)
+
+def upload_page(nickname: str):
+    LANG = translate.UploadPage
+    MAX_SIZE = 250
 
     run_js(r"""
     window.onbeforeunload = function() {
         return "WARNING";
     }
-    """.replace('WARNING', lang.REFRESH_WARNING),)
+    """.replace('WARNING', LANG.REFRESH_WARNING),)
 
     def button_actions(value):
         match value:
             case 'btn_upload':
                 if pin.uploaded_file is None:
                     toast(
-                        content=lang.PICK_A_FILE_FIRST,
+                        content=LANG.PICK_A_FILE_FIRST,
                         duration=3, color='info',)
                 else:
                     nbs_data = get_nbs_data(BytesIO(pin.uploaded_file['content']),)
-                    if nbs_data is None:
+                    if isinstance(nbs_data, str):
+                        print(nbs_data)
                         toast(
                             content='НЕВЕРНЫЕ ДАННЫЕ', # TODO
                             duration=3, color='red',)
                     elif not nbs_data[0].old_tempo in TEMPO:
-                        fix_tempo_page(nbs_data)
+                        fix_tempo_page(nbs_data, nickname)
                     else:
-                        edit_header_page(nbs_data)
-            case 'btn_cancel':
-                index_page()
+                        edit_header_page(nbs_data, nickname)
+            case 'btn_go_back':
+                input_nickname_page(nickname)
 
     with use_scope('title', clear=True,):
-        put_markdown(lang.CHOOSE_FILE)
+        put_markdown(LANG.CHOOSE_FILE)
     
     with use_scope('content', clear=True,):
-        put_markdown(lang.UPLOAD_RULES)
+        put_markdown(LANG.UPLOAD_RULES)
     
     with use_scope('inputs', clear=True,):
         put_file_upload(
             name='uploaded_file',
             label='Выберите файл для загрузки',
             accept='.nbs',
-            max_size=f'{max_size}K', placeholder=lang.PLACEHOLDER,
-            help_text=lang.MAX_SIZE.replace('MAX', str(max_size))).style(STYLE_MARGIN_TOP)
+            max_size=f'{MAX_SIZE}K', placeholder=LANG.PLACEHOLDER,
+            help_text=LANG.MAX_SIZE.replace('MAX', str(MAX_SIZE))).style(STYLE_MARGIN_TOP)
         put_buttons(
             [  
                 dict(label=i[0], value=i[1], color=i[2])  
                 for i in [
-                    [lang.UPLOAD, 'btn_upload', 'primary'],
-                    [lang.CANCEL, 'btn_cancel', 'danger'],]  
+                    [LANG.UPLOAD, 'btn_upload', 'primary'],
+                    ['Назад', 'btn_go_back', 'danger'],]  
             ],
             onclick=lambda value: button_actions(value),).style(STYLE_MARGIN_TOP)
 
-def custom_instuments_page(nbs_data: tuple[Header, list, list,]): # TODO
+def custom_instuments_page(nbs_data: tuple[Header, list, list,], nickname: str): # TODO
     pass
     # def button_actions(value):
     #     match value:
@@ -286,13 +353,13 @@ def custom_instuments_page(nbs_data: tuple[Header, list, list,]): # TODO
     #         [  
     #             dict(label=i[0], value=i[1], color=i[2])
     #             for i in [
-    #                 ['lang.ACCEPT', 'btn_accept', 'primary'],
-    #                 ['lang.GO_BACK', 'btn_go_back', 'danger'],]
+    #                 ['LANG.ACCEPT', 'btn_accept', 'primary'],
+    #                 ['LANG.GO_BACK', 'btn_go_back', 'danger'],]
     #         ],
     #         onclick=lambda value: button_actions(value),)
 
-def fix_tempo_page(nbs_data: tuple[Header, list, list,]):
-    lang = translate.FixTempoPage
+def fix_tempo_page(nbs_data: tuple[Header, list, list,], nickname: str):
+    LANG = translate.FixTempoPage
     header = nbs_data[0]
 
     def button_actions(value):
@@ -302,20 +369,20 @@ def fix_tempo_page(nbs_data: tuple[Header, list, list,]):
                 header.tick_delay = pin.new_tempo[1]
                 header.duration = header.tick_delay*header.length//20
                 header.duration_string = get_duration_string(header.duration)
-                edit_header_page(nbs_data)
+                edit_header_page(nbs_data, nickname)
             case 'btn_go_back':
-                upload_page()
+                upload_page(nickname)
     
     with use_scope('title', clear=True):
-        put_markdown(lang.UNSUPPORTED_TEMPO)
+        put_markdown(LANG.UNSUPPORTED_TEMPO)
     
     with use_scope('content', clear=True):
-        put_markdown(lang.NO_WORRIES)
+        put_markdown(LANG.NO_WORRIES)
     
     with use_scope('inputs', clear=True):
         put_select(
             name='new_tempo',
-            label=lang.PICK_TEMPO,
+            label=LANG.PICK_TEMPO,
             help_text='Исходный темп {:.2f} t/s'.format(header.old_tempo),
             options=[  
                 dict(label='{:.2f} t/s'.format(tempo), value=(tempo,i+1),
@@ -326,35 +393,33 @@ def fix_tempo_page(nbs_data: tuple[Header, list, list,]):
                 dict(label=i[0], value=i[1], color=i[2])
                 for i in [
                     ['К параметрам', 'btn_edit_header', 'primary'],
-                    [lang.GO_BACK, 'btn_go_back', 'danger'],]
+                    [LANG.GO_BACK, 'btn_go_back', 'danger'],]
             ],
             onclick=lambda value: button_actions(value),).style(STYLE_MARGIN_TOP)
 
-def edit_header_page(nbs_data: tuple[Header, list, list,]):
+def edit_header_page(nbs_data: tuple[Header, list, list,], nickname: str):
+    LANG = translate.EditHeaderPage
+    LOOP_MAX = 128
+    AUTHOR_MAX = 24
+    NAME_MAX = 36
 
-    lang = translate.EditHeaderPage
-    loop_max = 128
-    author_max = 24
-    name_max = 36
     header = nbs_data[0]
     author_last_pressed = header.author
 
-    def help_form_by_number(number: int) -> str:
-        forms = ['символ', 'символа', 'символов']
-        
-        if number == 1:
-            return forms[0]
-        elif 11 <= number % 100 <= 19:
-            return forms[2]
-        elif number % 10 == 1:
-            return forms[0]
-        elif 2 <= number % 10 <= 4:
-            return forms[1]
-        else:
-            return forms[2]
-
     def change_author_buttons():
         nonlocal author_last_pressed
+
+        if header.old_author == header.old_original:
+            if not author_last_pressed is None:
+                author_last_pressed = None
+                with use_scope('input_author_btns', clear=True):
+                    put_buttons(
+                        [  
+                            dict(label=i[0], value=i[1], color=i[2])  
+                            for i in [
+                                ['По умолчанию', 'btn_name_def', 'warning'],]  
+                        ],
+                        onclick=lambda value: button_actions(value), outline=True,)
 
         if pin.inp_author == header.old_author:
             author_last_pressed = header.old_author
@@ -396,23 +461,23 @@ def edit_header_page(nbs_data: tuple[Header, list, list,]):
 
     def check_author():
         if not pin.inp_author is None:
-            if len(pin.inp_author) > author_max:
-                pin.inp_author = pin.inp_author[:author_max]
+            if len(pin.inp_author) > AUTHOR_MAX:
+                pin.inp_author = pin.inp_author[:AUTHOR_MAX]
             header.author = sub(r'\s+', ' ', pin.inp_author.strip(),)
         change_author_buttons()
     
     def check_name():
         if not pin.inp_name is None:
-            if len(pin.inp_name) > name_max:
-                pin.inp_name = pin.inp_name[:name_max]
+            if len(pin.inp_name) > NAME_MAX:
+                pin.inp_name = pin.inp_name[:NAME_MAX]
             header.name = sub(r'\s+', ' ', pin.inp_name.strip(),)
     
     def check_loop_count():
         if not pin.inp_loop_count is None:
             if pin.inp_loop_count < 0:
                 pin.inp_loop_count = 0
-            if pin.inp_loop_count > loop_max:
-                pin.inp_loop_count = loop_max
+            if pin.inp_loop_count > LOOP_MAX:
+                pin.inp_loop_count = LOOP_MAX
             header.loop_count = pin.inp_loop_count
 
     def check_loop_start():
@@ -429,7 +494,7 @@ def edit_header_page(nbs_data: tuple[Header, list, list,]):
             with use_scope('input_looping_rad', clear=True):
                 put_input(
                     name='inp_loop_count', label='Количество повторов',
-                    help_text=f'0 - бесконечно. Максимум {loop_max} (а зачем больше?)',
+                    help_text=f'0 - бесконечно. Максимум {LOOP_MAX} (а зачем больше?)',
                     type=NUMBER, value=header.loop_count).style(STYLE_MARGIN_TOP)
                 pin_on_change(
                     'inp_loop_count', onchange=lambda _: check_loop_count(),
@@ -498,17 +563,20 @@ def edit_header_page(nbs_data: tuple[Header, list, list,]):
                     pin.inp_author = header.author = header.old_original
                     check_author()
             
+            case 'btn_author_def':
+                pin.inp_author = header.old_author
+                check_author()
             case 'btn_name_def':
                 pin.inp_name = header.old_name
                 check_name()
                     
             case 'btn_go_overview':
-                overview_page(nbs_data)
+                overview_page(nbs_data, nickname)
             case 'btn_go_back':
                 if header.old_tempo in TEMPO:
-                    upload_page()
+                    upload_page(nickname)
                 else:
-                    fix_tempo_page(nbs_data)
+                    fix_tempo_page(nbs_data, nickname)
 
     with use_scope('title', clear=True):
         put_markdown('# Подготовка к публикации')
@@ -519,7 +587,7 @@ def edit_header_page(nbs_data: tuple[Header, list, list,]):
     with use_scope('inputs', clear=True):
         put_input(
             'inp_author', label='Исполнитель / Группа', value=header.author, type=TEXT,
-            help_text=f'Максимум {author_max} {help_form_by_number(author_max)}',).style(STYLE_MARGIN_TOP)
+            help_text=f'Максимум {char_tag_by_num(AUTHOR_MAX)}',).style(STYLE_MARGIN_TOP)
         put_markdown('Взять значение из:')
         put_scope('input_author_btns', scope='inputs')
         change_author_buttons()
@@ -531,7 +599,7 @@ def edit_header_page(nbs_data: tuple[Header, list, list,]):
             
         put_input(
             'inp_name', label='Название трека', value=header.name, type=TEXT,
-            help_text=f'Максимум {name_max} {help_form_by_number(name_max)}',).style(STYLE_MARGIN_TOP)
+            help_text=f'Максимум {char_tag_by_num(NAME_MAX)}',).style(STYLE_MARGIN_TOP)
         pin_on_change(
             'inp_name', onchange=lambda _: check_name(),
             clear=True, init_run=True,)
@@ -579,18 +647,18 @@ def edit_header_page(nbs_data: tuple[Header, list, list,]):
             ],
             onclick=lambda value: button_actions(value),).style(STYLE_MARGIN_TOP)
 
-def overview_page(nbs_data: tuple[Header, list, list,]): # TODO
-    lang = translate.OverviewPage
+def overview_page(nbs_data: tuple[Header, list, list,], nickname: str): # TODO
+    LANG = translate.OverviewPage
     header = nbs_data[0]
 
     def button_actions(value):
         match value:
             case 'btn_check_duplicates':
-                check_duplicates_page(nbs_data)
+                check_duplicates_page(nbs_data, nickname)
             case 'btn_test':
-                parse_nbs_page(nbs_data)
+                parse_nbs_page(nbs_data, nickname)
             case 'btn_go_back':
-                edit_header_page(nbs_data)
+                edit_header_page(nbs_data, nickname)
 
     with use_scope('title', clear=True):
         put_markdown('# Предварительный просмотр')
@@ -625,8 +693,9 @@ def overview_page(nbs_data: tuple[Header, list, list,]): # TODO
             ],
             onclick=lambda value: button_actions(value),).style(STYLE_MARGIN_TOP)
 
-def check_duplicates_page(nbs_data: tuple[Header, list, list,], check=None): # FIXME
-    lang = translate.CheckDuplicatesPage
+def check_duplicates_page(nbs_data: tuple[Header, list, list,], 
+                          nickname: str, check=None): # FIXME
+    LANG = translate.CheckDuplicatesPage
     header = nbs_data[0]
 
     def button_actions(value):
@@ -645,8 +714,9 @@ def check_duplicates_page(nbs_data: tuple[Header, list, list,], check=None): # F
     with use_scope('inputs', clear=True):
         pass
 
-def parse_nbs_page(nbs_data: tuple[Header, list, list,], check=None): # FIXME
-    lang = translate.ParseNbsPage
+def parse_nbs_page(nbs_data: tuple[Header, list, list,], 
+                   nickname: str, check=None): # FIXME
+    LANG = translate.ParseNbsPage
     header = nbs_data[0]
     notes = nbs_data[1]
     layers = nbs_data[2]

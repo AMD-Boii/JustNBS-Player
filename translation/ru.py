@@ -73,6 +73,9 @@ class IndexPage:
     B_SEARCH = r'Поиск треков'
 
 
+class InputNicknamePage:
+    pass
+
 class UploadPage:
     REFRESH_WARNING = r'Вы уверены, что хотите покинуть эту страницу?'
 
