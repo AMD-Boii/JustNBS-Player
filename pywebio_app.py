@@ -32,6 +32,7 @@ try:
             'Authorization': f'Bearer {environ['GIST_ACCESS_TOKEN']}',
             'X-GitHub-Api-Version': '2022-11-28',}
         API_URL = 'https://api.github.com/gists'
+        RAW_URL = 'https://gist.githubusercontent.com'
     except:
         REQ_HEADERS = None
 except:
@@ -123,16 +124,18 @@ def main():
         index_page()
         check_token()
     
-def index_page(nickname: str = ''):
+def index_page():
     LANG = translate.IndexPage
+
+    total_uploaded = 0
 
     run_js(r"window.onbeforeunload = null")
 
     def show_latests(): # TODO
         pass
 
-    def button_actions(action):
-        match action:
+    def button_actions(value):
+        match value:
             case 'btn_go_inp_nick':
                 input_nickname_page(nickname)
             case 'btn_res_pack':
@@ -233,7 +236,7 @@ def index_page(nickname: str = ''):
             ],
             onclick=lambda action: button_actions(action),)
 
-def input_nickname_page(nickname: str):
+def input_nickname_page(nickname=''):
     LANG = translate.InputNicknamePage
     NICKNAME_MIN = 3
     NICKNAME_MAX = 16
@@ -252,8 +255,8 @@ def input_nickname_page(nickname: str):
                 pin.inp_nickname = pin.inp_nickname[:NICKNAME_MAX]
             nickname = pin.inp_nickname
 
-    def button_actions(action):
-        match action:
+    def button_actions(value):
+        match value:
             case 'btn_go_upload':
                 if len(nickname) < NICKNAME_MIN:
                     toast(
@@ -268,11 +271,11 @@ def input_nickname_page(nickname: str):
         put_markdown('# Приступим')
     
     with use_scope('content', clear=True):
-        put_markdown('### Ваш никнейм может потребоваться для помещения трека в актуальный плейлист')
+        put_markdown('### Ваш никнейм требуется для помещения трека в актуальный плейлист после проверки')
     
     with use_scope('inputs', clear=True,):
         put_input(
-            'inp_nickname', label='Введите ваш ник на сервере',
+            'inp_nickname', label='Введите ваш никнейм на сервере',
             value=nickname, type=TEXT,
             help_text=f'Минимум {char_tag_by_num(NICKNAME_MIN)} / Максимум {char_tag_by_num(NICKNAME_MAX)} / Символы 0-9 a-z A-Z _',
         ).style(STYLE_MARGIN_TOP)
@@ -289,7 +292,7 @@ def input_nickname_page(nickname: str):
             ],
             onclick=lambda value: button_actions(value),).style(STYLE_MARGIN_TOP)
 
-def upload_page(nickname: str, is_uploaded: bool = False):
+def upload_page(nickname: str):
     LANG = translate.UploadPage
     MAX_SIZE = 256 # KB
     MAX_SUMMARY = 1048576 # 1 MB
@@ -298,29 +301,21 @@ def upload_page(nickname: str, is_uploaded: bool = False):
         global total_uploaded
         match value:
             case 'btn_upload':
-                if total_uploaded > MAX_SUMMARY:
-                        toast(
-                            content='Превышен загрузочный лимит! Не надо тратить трафик впустую!',
-                            duration=3, color='red',)
+                if pin.uploaded_file is None:
+                    toast(
+                        content=LANG.PICK_A_FILE_FIRST,
+                        duration=3, color='info',)
                 else:
-                    upload = pin.uploaded_file
-                    if upload is None:
+                    nbs_data = get_nbs_data(BytesIO(pin.uploaded_file['content']),)
+                    if isinstance(nbs_data, str):
+                        print(nbs_data)
                         toast(
-                            content=LANG.PICK_A_FILE_FIRST,
-                            duration=3, color='info',)
+                            content='НЕВЕРНЫЕ ДАННЫЕ', # TODO
+                            duration=3, color='red',)
+                    elif not nbs_data[0].old_tempo in TEMPO:
+                        fix_tempo_page(nbs_data, nickname)
                     else:
-                        content = upload['content']
-                        total_uploaded += getsizeof(content)
-                        nbs_data = get_nbs_data(BytesIO(content),)
-                        if isinstance(nbs_data, str):
-                            print(nbs_data)
-                            toast(
-                                content='НЕВЕРНЫЕ ДАННЫЕ', # TODO
-                                duration=3, color='red',)
-                        elif not nbs_data[0].old_tempo in TEMPO:
-                            fix_tempo_page(nbs_data, nickname)
-                        else:
-                            edit_header_page(nbs_data, nickname)
+                        edit_header_page(nbs_data, nickname)
             case 'btn_go_back':
                 input_nickname_page(nickname)
 
@@ -333,7 +328,7 @@ def upload_page(nickname: str, is_uploaded: bool = False):
     with use_scope('inputs', clear=True,):
         put_file_upload(
             name='uploaded_file',
-            label='Выберите файл для загрузки',
+            label=filename,
             accept='.nbs',
             max_size=f'{MAX_SIZE}K',
             placeholder=LANG.PLACEHOLDER,
@@ -347,6 +342,8 @@ def upload_page(nickname: str, is_uploaded: bool = False):
                     ['Отмена', 'btn_go_index', 'danger'],]  
             ],
             onclick=lambda value: button_actions(value),).style(STYLE_MARGIN_TOP)
+        # pin_wait_change('uploaded_file')
+
 
 def custom_instuments_page(nbs_data: tuple[Header, list, list,], nickname: str): # TODO
     pass
@@ -428,54 +425,56 @@ def edit_header_page(nbs_data: tuple[Header, list, list,], nickname: str):
         nonlocal author_last_pressed
 
         if header.old_author == header.old_original:
+            remove('markdown')
             if not author_last_pressed is None:
                 author_last_pressed = None
+                with use_scope('input_author_btns', clear=True):
+                    remove('markdown')
+                    put_buttons(
+                        [  
+                            dict(label=i[0], value=i[1], color=i[2])  
+                            for i in [
+                                ['По умолчанию', 'btn_author_def', 'warning'],]  
+                        ],
+                        onclick=lambda value: button_actions(value), outline=True,)
+        else:
+            if pin.inp_author == header.old_author:
+                author_last_pressed = header.old_author
                 with use_scope('input_author_btns', clear=True):
                     put_buttons(
                         [  
                             dict(label=i[0], value=i[1], color=i[2])  
                             for i in [
-                                ['По умолчанию', 'btn_name_def', 'warning'],]  
+                                ['Song author', 'use_song_author', 'light'],
+                                ['Original song author', 'use_origin_author', 'secondary'],
+                            ]  
                         ],
-                        onclick=lambda value: button_actions(value), outline=True,)
-
-        if pin.inp_author == header.old_author:
-            author_last_pressed = header.old_author
-            with use_scope('input_author_btns', clear=True):
-                put_buttons(
-                    [  
-                        dict(label=i[0], value=i[1], color=i[2])  
-                        for i in [
-                            ['Song author', 'use_song_author', 'light'],
-                            ['Original song author', 'use_origin_author', 'secondary'],
-                        ]  
-                    ],
-                    onclick=lambda value: button_actions(value),)
-        elif pin.inp_author == header.old_original:
-            author_last_pressed = header.old_original
-            with use_scope('input_author_btns', clear=True):
-                put_buttons(
-                    [  
-                        dict(label=i[0], value=i[1], color=i[2])  
-                        for i in [
-                            ['Song author', 'use_song_author', 'secondary'],
-                            ['Original song author', 'use_origin_author', 'light'],
-                        ]  
-                    ],
-                    onclick=lambda value: button_actions(value),)
-        else:
-            if not author_last_pressed is None:
-                author_last_pressed = None
+                        onclick=lambda value: button_actions(value),)
+            elif pin.inp_author == header.old_original:
+                author_last_pressed = header.old_original
                 with use_scope('input_author_btns', clear=True):
                     put_buttons(
                         [  
                             dict(label=i[0], value=i[1], color=i[2])  
                             for i in [
                                 ['Song author', 'use_song_author', 'secondary'],
-                                ['Original song author', 'use_origin_author', 'secondary'],
+                                ['Original song author', 'use_origin_author', 'light'],
                             ]  
                         ],
                         onclick=lambda value: button_actions(value),)
+            else:
+                if not author_last_pressed is None:
+                    author_last_pressed = None
+                    with use_scope('input_author_btns', clear=True):
+                        put_buttons(
+                            [  
+                                dict(label=i[0], value=i[1], color=i[2])  
+                                for i in [
+                                    ['Song author', 'use_song_author', 'secondary'],
+                                    ['Original song author', 'use_origin_author', 'secondary'],
+                                ]  
+                            ],
+                            onclick=lambda value: button_actions(value),)
 
     def check_author():
         if not pin.inp_author is None:
@@ -606,7 +605,9 @@ def edit_header_page(nbs_data: tuple[Header, list, list,], nickname: str):
         put_input(
             'inp_author', label='Исполнитель / Группа', value=header.author, type=TEXT,
             help_text=f'Максимум {char_tag_by_num(AUTHOR_MAX)}',).style(STYLE_MARGIN_TOP)
-        put_markdown('Взять значение из:')
+        put_scope('markdown')
+        with use_scope('markdown', clear=True):
+            put_markdown('Взять значение из:')
         put_scope('input_author_btns', scope='inputs')
         change_author_buttons()
         pin_on_change(
@@ -671,9 +672,9 @@ def overview_page(nbs_data: tuple[Header, list, list,], nickname: str): # TODO
 
     def button_actions(value):
         match value:
-            case 'btn_check_duplicates':
-                check_duplicates_page(nbs_data, nickname)
-            case 'btn_test':
+            # case 'btn_check_duplicates':
+            #     check_duplicates_page(nbs_data, nickname)
+            case 'btn_parse':
                 parse_nbs_page(nbs_data, nickname)
             case 'btn_go_back':
                 edit_header_page(nbs_data, nickname)
@@ -686,12 +687,33 @@ def overview_page(nbs_data: tuple[Header, list, list,], nickname: str): # TODO
     
     with use_scope('inputs', clear=True):
         put_table([ 
-            [put_markdown('### Исполнитель'), put_markdown('### Название'), put_markdown('### Длительность'), put_markdown('### Темп'), put_markdown('### Цикличность')],
-            [header.author, header.name, header.duration_string, '{:.2f} t/s'.format(header.tempo), put_markdown('Повторы: {}\nСтарт: {}'.format('∞' if header.loop_count == 0 else header.loop_count, header.loop_start) if header.loop else '—')],
+            [put_markdown('### Исполнитель'), 
+             put_markdown('### Название'), 
+             put_markdown('### Длительность'), 
+             put_markdown('### Темп'), 
+             put_markdown('### Цикличность')],
+            [header.author, 
+             header.name, 
+             header.duration_string, 
+             '{:.2f} t/s'.format(header.tempo), 
+             put_markdown('Повторы: {}\nСтарт: {}'.format(
+                     '∞' if header.loop_count == 0 else header.loop_count, header.loop_start
+                 ) if header.loop else '—')],
         ])
 
         overview_style = 'color:rgb(255,87,51); margin-top:0px; margin-bottom:0px;'
 
+        # TODO 
+        # Определить, как будет выглядить каждый предмет-трек и
+        # сделать овервью в том же виде
+        
+        # Сделать возмоность указать NBS предмета??
+        
+        # Возможно ускорит парсинг страниц в коде, ведь не надо каждый раз
+        # создавать предмет и указывать ему NBT
+        
+        # Может быть только трудозатратно для приложения
+        #
         put_markdown('### Пример вывода в плейлист:')
         put_markdown(f'**{header.author} — {header.name}**').style(overview_style)
         put_markdown(f'**{header.duration_string}**').style(overview_style)
@@ -704,33 +726,35 @@ def overview_page(nbs_data: tuple[Header, list, list,], nickname: str): # TODO
             [  
                 dict(label=i[0], value=i[1], color=i[2])  
                 for i in [
-                    ['К проверке дублей', 'btn_check_duplicates', 'primary'],
-                    ['TEST PUBLISHING', 'btn_test', 'primary'],
+                    #['К проверке дублей', 'btn_check_duplicates', 'primary'],
+                    ['К парсингу', 'btn_parse', 'primary'],
                     ['Назад', 'btn_go_back', 'danger'],
                 ]  
             ],
             onclick=lambda value: button_actions(value),).style(STYLE_MARGIN_TOP)
 
-def check_duplicates_page(nbs_data: tuple[Header, list, list,], 
-                          nickname: str, check=None): # FIXME
-    LANG = translate.CheckDuplicatesPage
-    header = nbs_data[0]
+# FIXME Бесполезно и трудоемко. Треки все равно публикуются в temporal
 
-    def button_actions(value):
-        match value:
-            case 'btn_check_duplicates':
-                check_duplicates_page(nbs_data)
-            case 'btn_go_back':
-                edit_header_page(nbs_data)
+# def check_duplicates_page(nbs_data: tuple[Header, list, list,], 
+#                           nickname: str, check=None): # FIXME
+#     LANG = translate.CheckDuplicatesPage
+#     header = nbs_data[0]
 
-    with use_scope('title', clear=True):
-        put_markdown('# Проверяем наличие схожих треков')
+#     def button_actions(value):
+#         match value:
+#             case 'btn_check_duplicates':
+#                 check_duplicates_page(nbs_data)
+#             case 'btn_go_back':
+#                 edit_header_page(nbs_data)
+
+#     with use_scope('title', clear=True):
+#         put_markdown('# Проверяем наличие схожих треков')
     
-    with use_scope('content', clear=True):
-        put_markdown('### Пожалуйста, подождите')
+#     with use_scope('content', clear=True):
+#         put_markdown('### Пожалуйста, подождите')
     
-    with use_scope('inputs', clear=True):
-        pass
+#     with use_scope('inputs', clear=True):
+#         pass
 
 def parse_nbs_page(nbs_data: tuple[Header, list, list,], 
                    nickname: str, check=None): # FIXME
@@ -743,20 +767,28 @@ def parse_nbs_page(nbs_data: tuple[Header, list, list,],
         put_markdown('# Парсим NBS файл')
     
     with use_scope('content', clear=True):
-        put_markdown('### Пожалуйста, подождите')
-        put_loading(shape='border', color='primary')
+        put_markdown('### Пожалуйста, подождите') 
     
     with use_scope('inputs', clear=True):
-        put_processbar('loading_bar', 0.5)
+        put_loading(shape='border', color='primary')
 
-        track_files = parse_nbs(length=header.length,
+    parsing_result = parse_nbs(length=header.length,
                                 tick_delay=header.tick_delay,
                                 notes=notes,
                                 layers=layers,
                                 loop_start=header.loop_start,
                                 loop=header.loop)
+    
+    with use_scope('inputs', clear=True):
+        if isinstance(parsing_result, str):
+            put_markdown(parsing_result)
+        else:
+            file_amount = len(parsing_result)
+            put_markdown(f'Ваш трек состоит из {file_amount} файлов')
+            #publish_page(header, parsing_result)
         
-        publish_page(header, track_files)
+    
+    
 
     # with use_scope('inputs', clear=True):
     #     if response.status_code == 201:
