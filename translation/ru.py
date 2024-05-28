@@ -2,6 +2,19 @@
 #
 """Русская локализация."""
 
+
+class Global:
+    ARE_YOU_SURE = r'Вы уверены?'
+    WILL_LOSE_EVERYTHING = r'Все изменения будут потеряны'
+
+    B_IM_SURE = r'Отменить изменения'
+    B_RETURN = r'Вернуться'
+    B_CONTINUE = r'Продолжить'
+    B_BACK = r'Назад'
+    B_CANCEL = r'Отмена'
+    B_GOTCHA = r'Понятно'
+
+
 class Main:
     TAB_TITLE = r'JustNBS Плеер'
     LOGO = r'logo_ru.jpg'
@@ -26,8 +39,12 @@ class Main:
     """
 
 
-class IndexPage:
+class IndexPage(Global):
     LINK_COPIED = r'Ссылка скопирована в буфер обмена!'
+
+    HOW_TO_USE_LINK = """
+        /plot resourcepack add < ссылка >
+    """
 
     WELCOME = r'# Добро пожаловать'
 
@@ -67,44 +84,59 @@ class IndexPage:
     B_SEARCH = r'Поиск треков'
 
 
-class InputNicknamePage:
+class InputNicknamePage(Global):
     REFRESH_WARNING = r'Вы уверены, что хотите покинуть эту страницу?'
 
-class UploadPage:
+    NICK_IS_SHORT = r'Слишком короткий никнейм'
+
+    LETS_BEGIN = r'# Приступим'
+
+    NICKS_REQIRED_BECAUSE = r'### Ваш никнейм требуется для помещения трека в актуальный плейлист после проверки'
+    
+    ENTER_YOUR_NAME = r'Введите Ваш Minecraft никнейм'
+    
+    NICK_INPUT_REQS = r'Минимум MIN / Максимум MAX / Символы 0-9 a-z A-Z _'
+
+
+class UploadPage(Global):
     CHOOSE_FILE = r'# Выберите файл для загрузки'
 
     UPLOAD_RULES = r'правила загрузки'
 
-    # Toast
     PICK_A_FILE_FIRST = r'Для начала, выберите файл'
 
-    # Upload
-    PLACEHOLDER = r'Например, example_track_file.nbs'
+    ALREADY_UPLOADED = r'Уже загружен:'
+
+    NOT_UPLOADED = r'Файл ещё не загружен'
+    
     MAX_SIZE = r'Максимальный размер файла - MAX КБ'
 
-    # Buttons
-    UPLOAD = r'Загрузить'
-    CANCEL = r'Отмена'
+    REACHED_LIMIT = r'Превышен загрузочный лимит!'
+
+    DONT_WASTE_TRAFFIC = r'Не надо тратить трафик впустую!'
+
+    WRONG_FILE = r'Неверный или поврежденный файл'
 
 
-class FixTempoPage:
-    UNSUPPORTED_TEMPO = r'# NBS имеет неподдерживаемый темп!'
+class FixTempoPage(Global):
+    UNSUPPORTED_TEMPO = r'# Трек имеет неподдерживаемый темп!'
 
     NO_WORRIES = """
         ### Не беда! Вы можете изменить темп прямо здесь!
-        Но лучше вернуться в OpenNBS и тщательно его отредактировать...
-        Выберите максимально близкий к исходному темп.
+        Но лучше вернуться в OpenNBS и тщательно всё отредактировать...
+        А пока, выберите максимально близкий к исходному темп.
     """
 
-    # Select
-    PICK_TEMPO = r'Выберите поддерживаемый темп'
+    PICK_TEMPO = r'Выберите новый темп'
 
-    # Buttons
-    ACCEPT = r'Подтвердить'
-    GO_BACK = r'Назад'
+    DEFAULT_TEMPO_IS = r'Исходный темп'
 
 
-class EditHeaderPage:
+class EditHeaderPage(Global):
+    B_DEFAULT = r'По умолчанию'
+
+
+
     pass
 
 

@@ -105,6 +105,8 @@ def get_nbs_data(nbs_file: BytesIO) -> Union[tuple[Header,
     old.original_author = sub(r'\s+', ' ', old.original_author.strip(),)
     old.song_name = sub(r'\s+', ' ', old.song_name.strip(),)
 
+    if old.max_loop_count > 10: old.max_loop_count = 10
+
     default_author = get_default_author(old.song_author, old.original_author)
 
     seconds = (TEMPO.index(old.tempo)+1)*old.song_length//20 if (

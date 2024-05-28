@@ -46,19 +46,19 @@ STYLE_MARGIN_TOP = r'margin-top:20px;'
 total_uploaded: int = 0
 
 
-def char_tag_by_num(number: int) -> str:
-        forms = ['символ', 'символа', 'символов']
-        
-        if number == 1:
-            return f'{number} {forms[0]}'
-        elif 11 <= number % 100 <= 19:
-            return f'{number} {forms[2]}'
-        elif number % 10 == 1:
-            return f'{number} {forms[0]}'
-        elif 2 <= number % 10 <= 4:
-            return f'{number} {forms[1]}'
-        else:
-            return f'{number} {forms[2]}'
+def get_noun_form(number: int, forms: Optional[tuple[str, str, str]] = None) -> str:
+    if forms is None:
+        forms = ('символ', 'символа', 'символов')
+    if number == 1:
+        return f'{number} {forms[0]}'
+    elif 11 <= number % 100 <= 19:
+        return f'{number} {forms[2]}'
+    elif number % 10 == 1:
+        return f'{number} {forms[0]}'
+    elif 2 <= number % 10 <= 4:
+        return f'{number} {forms[1]}'
+    else:
+        return f'{number} {forms[2]}'
 
 @config(theme='dark')
 def main():
@@ -130,9 +130,9 @@ def main():
         check_token()
     
 def index_page(nickname: str = ''):
-    global total_uploaded
     LANG = translate.IndexPage
 
+    global total_uploaded
     total_uploaded = 0
 
     run_js(r"window.onbeforeunload = null")
@@ -154,13 +154,20 @@ def index_page(nickname: str = ''):
                     console.error('Could not copy text: ', err);
                 });
                 """)
-                toast(
-                    content=LANG.LINK_COPIED,
-                    duration=3, color='info',)
+                popup(LANG.LINK_COPIED, [
+                    put_markdown(LANG.HOW_TO_USE_LINK),
+                    put_buttons(
+                        [
+                            dict(label=i[0], value=i[1], color=i[2])  
+                            for i in [
+                                [LANG.B_GOTCHA, 'btn_gotcha', 'primary'],]
+                        ], 
+                        onclick=lambda _: close_popup(),)
+                ])
             case 'btn_onbs_dwnld':
                 run_js(r"""
                 window.open(
-                "https://github.com/OpenNBS/OpenNoteBlockStudio/releases")
+                "https://github.com/OpenNBS/OpenNoteBlockStudio/releases/latest")
                 """)
             case 'btn_github_repo':
                 run_js(r"""
@@ -247,6 +254,7 @@ def index_page(nickname: str = ''):
 def input_nickname_page(nickname: str, upload: Optional[dict] = None,
                         nbs_data: Optional[tuple[Header, list, list,],] = None):
     LANG = translate.InputNicknamePage
+
     NICKNAME_MIN = 3
     NICKNAME_MAX = 16
 
@@ -269,33 +277,47 @@ def input_nickname_page(nickname: str, upload: Optional[dict] = None,
         nonlocal nickname
         nonlocal nbs_data
         match action:
-            case 'btn_go_upload':
+            case 'btn_continue':
                 if len(nickname) < NICKNAME_MIN:
                     toast(
-                        content='Слишком короткий никнейм',
+                        content=LANG.NICK_IS_SHORT,
                         duration=3, color='red',)
                 else:
                     upload_page(nbs_data, nickname, upload)
             case 'btn_cancel':
                 if not upload is None:
-                    popup('Вы уверены?', [
-                        put_markdown('Все изменения будут потеряны'),
-                        put_buttons(['Уверен'], onclick=lambda _: index_page(nickname))
+                    popup(LANG.ARE_YOU_SURE, [
+                        put_markdown(LANG.WILL_LOSE_EVERYTHING),
+                        put_buttons(
+                            [
+                                dict(label=i[0], value=i[1], color=i[2])  
+                                for i in [
+                                    [LANG.B_IM_SURE, 'btn_sure', 'danger'],
+                                    [LANG.B_RETURN, 'btn_return', 'primary'],]
+                            ], 
+                            onclick=lambda value: button_actions(value),)
                     ])
                 else:
                     index_page(nickname)
+            case 'btn_sure':
+                index_page(nickname)
+            case 'btn_return':
+                close_popup()
     
     with use_scope('title', clear=True):
-        put_markdown('# Приступим')
+        put_markdown(LANG.LETS_BEGIN)
     
     with use_scope('content', clear=True):
-        put_markdown('### Ваш никнейм требуется для помещения трека в актуальный плейлист после проверки')
+        put_markdown(LANG.NICKS_REQIRED_BECAUSE)
     
     with use_scope('inputs', clear=True,):
         put_input(
-            'inp_nickname', label='Введите ваш никнейм на сервере',
+            'inp_nickname', label=LANG.ENTER_YOUR_NAME,
             value=nickname, type=TEXT,
-            help_text=f'Минимум {char_tag_by_num(NICKNAME_MIN)} / Максимум {char_tag_by_num(NICKNAME_MAX)} / Символы 0-9 a-z A-Z _',
+            help_text=str(
+                LANG.NICK_INPUT_REQS.replace(
+                    'MIN', get_noun_form(NICKNAME_MIN),),).replace(
+                        'MAX', get_noun_form(NICKNAME_MAX),)
         ).style(STYLE_MARGIN_TOP)
         pin_on_change(
             'inp_nickname', onchange=lambda _: check_nickname(),
@@ -305,14 +327,15 @@ def input_nickname_page(nickname: str, upload: Optional[dict] = None,
             [  
                 dict(label=i[0], value=i[1], color=i[2])  
                 for i in [
-                    ['К загрузке', 'btn_go_upload', 'primary'],
-                    ['Отмена', 'btn_cancel', 'danger'],]  
+                    [LANG.B_CONTINUE, 'btn_continue', 'primary'],
+                    [LANG.B_CANCEL, 'btn_cancel', 'danger'],]  
             ],
             onclick=lambda value: button_actions(value),).style(STYLE_MARGIN_TOP)
 
 def upload_page(nbs_data: Optional[tuple[Header, list, list,],],
                 nickname: str, upload: Optional[dict],):
     LANG = translate.UploadPage
+
     MAX_SIZE = 256 # KB
     MAX_SUMMARY = 1048576 # 1 MB
 
@@ -322,9 +345,8 @@ def upload_page(nbs_data: Optional[tuple[Header, list, list,],],
         if nbs_data is None:
             nbs_data = get_nbs_data(BytesIO(upload['content']),)
         if isinstance(nbs_data, str):
-            print(nbs_data) # FIXME вывод ошибки
             toast(
-                content='Неверный или поврежденный файл', # TODO
+                content=LANG.WRONG_FILE,
                 duration=3, color='red',)
         elif not nbs_data[0].old_tempo in TEMPO:
             fix_tempo_page(nbs_data, nickname, upload)
@@ -336,12 +358,17 @@ def upload_page(nbs_data: Optional[tuple[Header, list, list,],],
         nonlocal upload
         nonlocal nbs_data
         match value:
-            case 'btn_upload':
+            case 'btn_continue':
                 if total_uploaded > MAX_SUMMARY:
-                        toast(
-                            content='Превышен загрузочный лимит! ' + 
-                                'Не надо тратить трафик впустую!',
-                            duration=3, color='red',)
+                    popup(LANG.REACHED_LIMIT, [
+                        put_markdown(LANG.DONT_WASTE_TRAFFIC),
+                        put_buttons(
+                            [
+                                dict(label=i[0], value=i[1], color=i[2])  
+                                for i in [
+                                    [LANG.B_GOTCHA, 'btn_gotcha', 'primary'],]
+                            ], 
+                            onclick=lambda _: index_page(nickname),),])
                 else:
                     if upload is None:
                         upload = pin.uploaded_file
@@ -360,9 +387,26 @@ def upload_page(nbs_data: Optional[tuple[Header, list, list,],],
                             total_uploaded += getsizeof(upload['content'])
                             upload = new_upload
                         go_further()
-                        
-            case 'btn_go_back':
+            case 'btn_back':
                 input_nickname_page(nickname, upload, nbs_data)
+            case 'btn_cancel':
+                if not upload is None:
+                    popup(LANG.ARE_YOU_SURE, [
+                        put_markdown(LANG.WILL_LOSE_EVERYTHING),
+                        put_buttons(
+                            [
+                                dict(label=i[0], value=i[1], color=i[2])  
+                                for i in [
+                                    [LANG.B_IM_SURE, 'btn_sure', 'danger'],
+                                    [LANG.B_RETURN, 'btn_return', 'primary'],]
+                            ], 
+                            onclick=lambda value: button_actions(value),),])
+                else:
+                    index_page(nickname)
+            case 'btn_sure':
+                index_page(nickname)
+            case 'btn_return':
+                close_popup()
 
     with use_scope('title', clear=True,):
         put_markdown(LANG.CHOOSE_FILE)
@@ -376,23 +420,23 @@ def upload_page(nbs_data: Optional[tuple[Header, list, list,],],
             label='Загрузите',
             accept='.nbs',
             max_size=f'{MAX_SIZE}K',
-            placeholder=f'Уже загружен: {upload['filename']}' if not upload is None else LANG.PLACEHOLDER,
-            help_text=LANG.MAX_SIZE.replace('MAX', str(MAX_SIZE))).style(STYLE_MARGIN_TOP)
-        ##pin.uploaded_file = upload
-        #print(pin.upload_file)
+            placeholder=f'{LANG.ALREADY_UPLOADED} {upload['filename']}' if (
+                not upload is None) else LANG.NOT_UPLOADED,
+            help_text=LANG.MAX_SIZE.replace('MAX', str(MAX_SIZE)),
+        ).style(STYLE_MARGIN_TOP)
         put_buttons(
             [  
                 dict(label=i[0], value=i[1], color=i[2])  
                 for i in [
-                    [LANG.UPLOAD if upload is None else 'Продолжить', 'btn_upload', 'primary'],
-                    ['Назад', 'btn_go_back', 'warning'],
-                    ['Отмена', 'btn_go_index', 'danger'],]  
+                    [LANG.B_CONTINUE, 'btn_continue', 'primary'],
+                    [LANG.B_BACK, 'btn_back', 'warning'],
+                    [LANG.B_CANCEL, 'btn_cancel', 'danger'],]  
             ],
             onclick=lambda value: button_actions(value),).style(STYLE_MARGIN_TOP)
         # pin_wait_change('uploaded_file')
 
-def custom_instuments_page(nbs_data: tuple[Header, list, list,], 
-                           nickname: str): # TODO
+def custom_instuments_page(nbs_data: tuple[Header, list, list,], # TODO
+                           nickname: str): 
     pass
     # def button_actions(value):
     #     match value:
@@ -420,22 +464,40 @@ def custom_instuments_page(nbs_data: tuple[Header, list, list,],
     #         ],
     #         onclick=lambda value: button_actions(value),)
 
-def fix_tempo_page(nbs_data: tuple[Header, list, list,], 
+def fix_tempo_page(nbs_data: tuple[Header, list, list,],
                    nickname: str, upload: dict):
     LANG = translate.FixTempoPage
+
     header = nbs_data[0]
 
+    def change_tempo(new_tempo: tuple[float, int]):
+        header.tempo = new_tempo[0]
+        header.tick_delay = new_tempo[1]
+        header.duration = header.tick_delay*header.length//20
+        header.duration_string = get_duration_string(header.duration)
+
     def button_actions(value):
-        #nonlocal upload
         match value:
-            case 'btn_edit_header':
-                header.tempo = pin.new_tempo[0]
-                header.tick_delay = pin.new_tempo[1]
-                header.duration = header.tick_delay*header.length//20
-                header.duration_string = get_duration_string(header.duration)
+            case 'btn_continue':
                 edit_header_page(nbs_data, nickname, upload)
-            case 'btn_go_back':
+            case 'btn_back':
                 upload_page(nbs_data, nickname, upload)
+            case 'btn_cancel':
+                popup(LANG.ARE_YOU_SURE, [
+                    put_markdown(LANG.WILL_LOSE_EVERYTHING),
+                    put_buttons(
+                        [
+                            dict(label=i[0], value=i[1], color=i[2])  
+                            for i in [
+                                [LANG.B_IM_SURE, 'btn_sure', 'danger'],
+                                [LANG.B_RETURN, 'btn_return', 'primary'],]
+                        ], 
+                        onclick=lambda value: button_actions(value),)
+                ])
+            case 'btn_sure':
+                index_page(nickname)
+            case 'btn_return':
+                close_popup()
     
     with use_scope('title', clear=True):
         put_markdown(LANG.UNSUPPORTED_TEMPO)
@@ -445,26 +507,32 @@ def fix_tempo_page(nbs_data: tuple[Header, list, list,],
     
     with use_scope('inputs', clear=True):
         put_select(
-            name='new_tempo',
+            name='sel_tempo',
             label=LANG.PICK_TEMPO,
-            help_text='Исходный темп {:.2f} t/s'.format(header.old_tempo),
+            help_text='{} {:.2f} t/s'.format(LANG.DEFAULT_TEMPO_IS, 
+                                             header.old_tempo),
             options=[  
                 dict(label='{:.2f} t/s'.format(tempo), value=(tempo,i+1),
                      selected=(i+1 == header.tick_delay or i == 0))
                     for i, tempo in enumerate(TEMPO)],).style(STYLE_MARGIN_TOP)
+        pin_on_change(
+            'sel_tempo', onchange=lambda new_tempo: change_tempo(new_tempo),
+            clear=True, init_run=True,)
         put_buttons(
             [  
                 dict(label=i[0], value=i[1], color=i[2])
                 for i in [
-                    ['К параметрам', 'btn_edit_header', 'primary'],
-                    [LANG.GO_BACK, 'btn_go_back', 'danger'],]
+                    [LANG.B_CONTINUE, 'btn_continue', 'primary'],
+                    [LANG.B_BACK, 'btn_back', 'warning'],
+                    [LANG.B_CANCEL, 'btn_cancel', 'danger'],]
             ],
             onclick=lambda value: button_actions(value),).style(STYLE_MARGIN_TOP)
 
-def edit_header_page(nbs_data: tuple[Header, list, list,], 
+def edit_header_page(nbs_data: tuple[Header, list, list,], # TODO перевод
                      nickname: str, upload: dict):
     LANG = translate.EditHeaderPage
-    LOOP_MAX = 128
+
+    LOOP_MAX = 10
     AUTHOR_MAX = 24
     NAME_MAX = 36
 
@@ -485,7 +553,7 @@ def edit_header_page(nbs_data: tuple[Header, list, list,],
                         [  
                             dict(label=i[0], value=i[1], color=i[2])  
                             for i in [
-                                ['По умолчанию', 'btn_author_def', 'warning'],]  
+                                [LANG.B_DEFAULT, 'btn_author_def', 'warning'],]  
                         ],
                         onclick=lambda value: button_actions(value), outline=True,)
         else:
@@ -562,7 +630,7 @@ def edit_header_page(nbs_data: tuple[Header, list, list,],
             with use_scope('input_looping_rad', clear=True):
                 put_input(
                     name='inp_loop_count', label='Количество повторов',
-                    help_text=f'0 - бесконечно. Максимум {LOOP_MAX} (а зачем больше?)',
+                    help_text=f'0 - бесконечно. Максимум {LOOP_MAX}',
                     type=NUMBER, value=header.loop_count).style(STYLE_MARGIN_TOP)
                 pin_on_change(
                     'inp_loop_count', onchange=lambda _: check_loop_count(),
@@ -656,7 +724,7 @@ def edit_header_page(nbs_data: tuple[Header, list, list,],
     with use_scope('inputs', clear=True):
         put_input(
             'inp_author', label='Исполнитель / Группа', value=header.author, type=TEXT,
-            help_text=f'Максимум {char_tag_by_num(AUTHOR_MAX)}',).style(STYLE_MARGIN_TOP)
+            help_text=f'Максимум {get_noun_form(AUTHOR_MAX)}',).style(STYLE_MARGIN_TOP)
         put_scope('markdown')
         with use_scope('markdown', clear=True):
             put_markdown('Взять значение из:')
@@ -667,7 +735,7 @@ def edit_header_page(nbs_data: tuple[Header, list, list,],
             clear=True, init_run=True,)    
         put_input(
             'inp_name', label='Название трека', value=header.name, type=TEXT,
-            help_text=f'Максимум {char_tag_by_num(NAME_MAX)}',).style(STYLE_MARGIN_TOP)
+            help_text=f'Максимум {get_noun_form(NAME_MAX)}',).style(STYLE_MARGIN_TOP)
         pin_on_change(
             'inp_name', onchange=lambda _: check_name(),
             clear=True, init_run=True,)
