@@ -2,11 +2,20 @@
 #
 """Flask WSGI."""
 
-from pywebio.platform.flask import webio_view
+# import logging
+
+from pywebio.platform.flask import webio_view, send_from_directory
 from flask import Flask
 from pywebio_app import main
 
 app = Flask(__name__)
+
+# log = logging.getLogger('werkzeug')
+# log.setLevel(logging.ERROR)
+
+@app.route('/fonts/<path:filename>')
+def serve_fonts(filename):
+    return send_from_directory('fonts', filename)
 
 app.add_url_rule(
     '/', 'webio_view', webio_view(main),
@@ -14,4 +23,4 @@ app.add_url_rule(
 )
 
 if __name__ == '__main__':
-    app.run(port=8000)
+    app.run(port=8000, debug=False)

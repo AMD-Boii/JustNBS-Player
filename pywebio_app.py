@@ -841,17 +841,64 @@ def overview_page(nbs_data: tuple[Header, list, list,],
 
         overview_style = 'color:rgb(255,87,51); margin-top:0px; margin-bottom:0px;'
 
-        # TODO 
-        # Определить, как будет выглядить каждый предмет-трек и
-        # сделать овервью в том же виде
-        
-        # Сделать возмоность указать NBS предмета??
-        
-        # Возможно ускорит парсинг страниц в коде, ведь не надо каждый раз
-        # создавать предмет и указывать ему NBT
-        
-        # Может быть только трудозатратно для приложения
-        #
+        put_html("""
+            <style>
+                @font-face {
+                    font-family: 'Minecraftia';
+                    src: url('/fonts/minecraftia_2.0.ttf') format('truetype');
+                }
+                .font {
+                    font-family: 'Minecraftia', sans-serif;
+                    font-size: 14px;
+                    line-height: 1;
+                }
+                .italic {
+                    font-style: italic;
+                }
+                .name-col {
+                    color: #ff55ff;
+                }
+                .author-col {
+                    color: #55ff55;
+                }
+                .duration-col {
+                    color: #555555;
+                }
+                .looped-col {
+                    color: #aaaaaa;
+                }
+                .publisher-col {
+                    color: #555555;
+                }
+                .auto-size {
+                    width: auto;
+                    height: auto;
+                    display: inline-block;
+                }
+                .outer-frame {
+                    background-color: black;
+                    padding: 5px;
+                }
+                .inner-frame {
+                    border: 2px solid #00008B;
+                    padding: 10px
+                    
+                }
+            </style>
+            <div class="outer-frame auto-size">
+                <div class="inner-frame auto-size">
+                    <p class="font name-col">Bohemian Rhapsody</p>
+                    <p class="font author-col">Queen</p>
+                    <p>
+                        <span class="font duration-col">5:47 </span>
+                        <span class="font looped-col">LOOPED </span>
+                        <span class="font duration-col">at 2:36 10 times</span>
+                    </p>
+                    <p class="font"></p>
+                    <p class="font italic duration-col">By AMD_Boii</p>
+                </div>
+            </div>
+        """)
         put_markdown('### Пример вывода в плейлист:')
         put_markdown(f'**{header.author} — {header.name}**').style(overview_style)
         put_markdown(f'**{header.duration_string}**').style(overview_style)
