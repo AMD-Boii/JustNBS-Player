@@ -528,8 +528,8 @@ def fix_tempo_page(nbs_data: tuple[Header, list, list,],
             ],
             onclick=lambda value: button_actions(value),).style(STYLE_MARGIN_TOP)
 
-def edit_header_page(nbs_data: tuple[Header, list, list,], # TODO перевод
-                     nickname: str, upload: dict):
+def edit_header_page(nbs_data: tuple[Header, list, list,], # TODO перевод FIXME оптимизировать
+                     nickname: str, upload: dict): # размер кода вывода кнопок
     LANG = translate.EditHeaderPage
 
     LOOP_MAX = 10
@@ -539,7 +539,7 @@ def edit_header_page(nbs_data: tuple[Header, list, list,], # TODO перевод
     header = nbs_data[0]
     author_last_pressed = header.author
 
-    def change_author_buttons():
+    def change_author_buttons(): # FIXME
         nonlocal author_last_pressed
         if (header.old_author == header.old_original) or (
                 header.old_author == '') or (
@@ -595,20 +595,20 @@ def edit_header_page(nbs_data: tuple[Header, list, list,], # TODO перевод
                             ],
                             onclick=lambda value: button_actions(value),)
 
-    def check_author():
+    def check_author(): # FIXME обращение к pin каждый раз делает опросы
         if not pin.inp_author is None:
             if len(pin.inp_author) > AUTHOR_MAX:
                 pin.inp_author = pin.inp_author[:AUTHOR_MAX]
             header.author = sub(r'\s+', ' ', pin.inp_author.strip(),)
         change_author_buttons()
     
-    def check_name():
+    def check_name(): # FIXME обращение к pin каждый раз делает опросы
         if not pin.inp_name is None:
             if len(pin.inp_name) > NAME_MAX:
                 pin.inp_name = pin.inp_name[:NAME_MAX]
             header.name = sub(r'\s+', ' ', pin.inp_name.strip(),)
     
-    def check_loop_count():
+    def check_loop_count(): # FIXME обращение к pin каждый раз делает опросы
         if not pin.inp_loop_count is None:
             if pin.inp_loop_count < 0:
                 pin.inp_loop_count = 0
@@ -616,7 +616,7 @@ def edit_header_page(nbs_data: tuple[Header, list, list,], # TODO перевод
                 pin.inp_loop_count = LOOP_MAX
             header.loop_count = pin.inp_loop_count
 
-    def check_loop_start():
+    def check_loop_start(): # FIXME обращение к pin каждый раз делает опросы
         if not pin.inp_loop_start is None:
             if pin.inp_loop_start < 0:
                 pin.inp_loop_start = 0
@@ -624,13 +624,13 @@ def edit_header_page(nbs_data: tuple[Header, list, list,], # TODO перевод
                 pin.inp_loop_start = header.length
             header.loop_start = pin.inp_loop_start
 
-    def toggle_loop():
+    def toggle_loop(): # FIXME обращение к pin каждый раз делает опросы
         if pin.rad_looping:
             header.loop = True
             with use_scope('input_looping_rad', clear=True):
                 put_input(
-                    name='inp_loop_count', label='Количество повторов',
-                    help_text=f'0 - бесконечно. Максимум {LOOP_MAX}',
+                    name='inp_loop_count', label=LANG.LOOP_COUNT,
+                    help_text=f'{LANG.LOOP_COUNT_LIMITS} {LOOP_MAX}',
                     type=NUMBER, value=header.loop_count).style(STYLE_MARGIN_TOP)
                 pin_on_change(
                     'inp_loop_count', onchange=lambda _: check_loop_count(),
@@ -641,13 +641,12 @@ def edit_header_page(nbs_data: tuple[Header, list, list,], # TODO перевод
                         for i in [
                             ['-', 'btn_loop_count_minus', 'danger'],
                             ['+', 'btn_loop_count_plus', 'success'],
-                            ['По умолчанию', 'btn_loop_count_def', 'warning'],]  
+                            [LANG.B_DEFAULT, 'btn_loop_count_def', 'warning'],]  
                     ],
                     onclick=lambda value: button_actions(value), outline=True,)
-                
                 put_input(
-                    name='inp_loop_start', label='Тик начала повтора',
-                    help_text=f'Максимум {header.length}',
+                    name='inp_loop_start', label=LANG.LOOP_START,
+                    help_text=f'{LANG.MAX} {header.length}',
                     type=NUMBER, value=header.loop_start).style(STYLE_MARGIN_TOP)
                 pin_on_change(
                     'inp_loop_start', onchange=lambda _: check_loop_start(),
@@ -658,7 +657,7 @@ def edit_header_page(nbs_data: tuple[Header, list, list,], # TODO перевод
                         for i in [
                             ['-', 'btn_loop_start_minus', 'danger'],
                             ['+', 'btn_loop_start_plus', 'success'],
-                            ['По умолчанию', 'btn_loop_start_def', 'warning']]  
+                            [LANG.B_DEFAULT, 'btn_loop_start_def', 'warning']]  
                     ],
                     onclick=lambda value: button_actions(value), outline=True,)
         else:
@@ -707,35 +706,57 @@ def edit_header_page(nbs_data: tuple[Header, list, list,], # TODO перевод
                 pin.inp_name = header.old_name
                 check_name()
                     
-            case 'btn_go_overview':
+            case 'btn_continue':
                 overview_page(nbs_data, nickname, upload)
-            case 'btn_go_back':
+            case 'btn_back':
                 if header.old_tempo in TEMPO:
                     upload_page(nbs_data, nickname, upload)
                 else:
                     fix_tempo_page(nbs_data, nickname, upload)
+            case 'btn_cancel':
+                popup(LANG.ARE_YOU_SURE, [
+                    put_markdown(LANG.WILL_LOSE_EVERYTHING),
+                    put_buttons(
+                        [
+                            dict(label=i[0], value=i[1], color=i[2])  
+                            for i in [
+                                [LANG.B_IM_SURE, 'btn_sure', 'danger'],
+                                [LANG.B_RETURN, 'btn_return', 'primary'],]
+                        ], 
+                        onclick=lambda value: button_actions(value),)
+                ])
+            case 'btn_sure':
+                index_page(nickname)
+            case 'btn_return':
+                close_popup()
 
     with use_scope('title', clear=True):
-        put_markdown('# Подготовка к публикации')
+        put_markdown(LANG.PUBLISH_PREPARATION)
     
     with use_scope('content', clear=True):
-        put_markdown('### Здесь вы можете изменить параметры заголовка трека')
+        put_markdown(LANG.YOU_CAN_CHANGE_HEADER)
 
     with use_scope('inputs', clear=True):
         put_input(
-            'inp_author', label='Исполнитель / Группа', value=header.author, type=TEXT,
-            help_text=f'Максимум {get_noun_form(AUTHOR_MAX)}',).style(STYLE_MARGIN_TOP)
+            'inp_author', label=LANG.AUTHOR, value=header.author, type=TEXT,
+            help_text=f'{LANG.MAX} {get_noun_form(AUTHOR_MAX)}',
+        ).style(STYLE_MARGIN_TOP)
+
         put_scope('markdown')
         with use_scope('markdown', clear=True):
-            put_markdown('Взять значение из:')
+            put_markdown(LANG.TAKE_AUTHOR_VAL_FROM)
+        
         put_scope('input_author_btns', scope='inputs')
         change_author_buttons()
+
         pin_on_change(
             'inp_author', onchange=lambda _: check_author(),
-            clear=True, init_run=True,)    
+            clear=True, init_run=True,)   
+         
         put_input(
-            'inp_name', label='Название трека', value=header.name, type=TEXT,
-            help_text=f'Максимум {get_noun_form(NAME_MAX)}',).style(STYLE_MARGIN_TOP)
+            'inp_name', label=LANG.SONG_NAME, value=header.name, type=TEXT,
+            help_text=f'{LANG.MAX} {get_noun_form(NAME_MAX)}',
+        ).style(STYLE_MARGIN_TOP)
         pin_on_change(
             'inp_name', onchange=lambda _: check_name(),
             clear=True, init_run=True,)
@@ -743,24 +764,22 @@ def edit_header_page(nbs_data: tuple[Header, list, list,], # TODO перевод
             [  
                 dict(label=i[0], value=i[1], color=i[2])  
                 for i in [
-                    ['По умолчанию', 'btn_name_def', 'warning']]  
+                    [LANG.B_DEFAULT, 'btn_name_def', 'warning']]  
             ],
             onclick=lambda value: button_actions(value), outline=True,)
 
         if header.old_loop:
-            put_markdown("""
-                #### Было обнаружено, что трек использует повторы (looping)
-            """)
+            put_markdown(LANG.LOOPING_DETECTED)
             put_radio(
                 name='rad_looping',
                 options=[
                     {
-                        'label': 'Проигрывать один раз',
+                        'label': LANG.NO_LOOPS,
                         'value': False,
                         'selected': not header.loop,
                     },
                     {
-                        'label': 'Повторять',
+                        'label': LANG.USE_LOOPING,
                         'value': True,
                         'selected': header.loop,
                     },
@@ -777,8 +796,9 @@ def edit_header_page(nbs_data: tuple[Header, list, list,], # TODO перевод
             [  
                 dict(label=i[0], value=i[1], color=i[2])  
                 for i in [
-                    ['К предпросмотру', 'btn_go_overview', 'primary'],
-                    ['Назад', 'btn_go_back', 'danger'],
+                    [LANG.B_CONTINUE, 'btn_continue', 'primary'],
+                    [LANG.B_BACK, 'btn_back', 'warning'],
+                    [LANG.B_CANCEL, 'btn_cancel', 'danger'],
                 ]  
             ],
             onclick=lambda value: button_actions(value),).style(STYLE_MARGIN_TOP)

@@ -101,7 +101,7 @@ class InputNicknamePage(Global):
 class UploadPage(Global):
     CHOOSE_FILE = r'# Выберите файл для загрузки'
 
-    UPLOAD_RULES = r'правила загрузки'
+    UPLOAD_RULES = r'правила загрузки' # FIXME
 
     PICK_A_FILE_FIRST = r'Для начала, выберите файл'
 
@@ -124,7 +124,7 @@ class FixTempoPage(Global):
     NO_WORRIES = """
         ### Не беда! Вы можете изменить темп прямо здесь!
         Но лучше вернуться в OpenNBS и тщательно всё отредактировать...
-        А пока, выберите максимально близкий к исходному темп.
+        А пока, выберите максимально близкий к исходному темп
     """
 
     PICK_TEMPO = r'Выберите новый темп'
@@ -135,9 +135,31 @@ class FixTempoPage(Global):
 class EditHeaderPage(Global):
     B_DEFAULT = r'По умолчанию'
 
+    LOOP_COUNT = r'Количество повторов'
 
+    MAX = r'Максимум'
 
-    pass
+    LOOP_COUNT_LIMITS = f'0 - бесконечно / {MAX}'
+
+    LOOP_START = r'Тик начала повтора'
+
+    PUBLISH_PREPARATION = r'# Подготовка к публикации'
+
+    YOU_CAN_CHANGE_HEADER = r'### Здесь вы можете изменить параметры заголовка трека'
+
+    AUTHOR = r'Композитор / Исполнитель / Группа'
+
+    SONG_NAME = r'Название трека'
+
+    TAKE_AUTHOR_VAL_FROM = r'Взять значение из:'
+
+    LOOPING_DETECTED = """
+        #### Было обнаружено, что трек использует повторы (looping)
+    """
+
+    NO_LOOPS = r'Проигрывать один раз'
+
+    USE_LOOPING = r'Повторять'
 
 
 class OverviewPage:
