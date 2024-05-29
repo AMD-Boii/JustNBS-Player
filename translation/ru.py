@@ -105,6 +105,8 @@ class UploadPage(Global):
 
     PICK_A_FILE_FIRST = r'Для начала, выберите файл'
 
+    UPLOAD_A_FILE = r'Загрузите'
+
     ALREADY_UPLOADED = r'Уже загружен:'
 
     NOT_UPLOADED = r'Файл ещё не загружен'

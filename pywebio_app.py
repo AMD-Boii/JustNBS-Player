@@ -12,13 +12,15 @@ from pywebio.pin import *
 from pywebio.session import set_env, info as session_info, run_js
 
 from os import environ, path
-from requests import get as get_req, post as post_req, patch as patch_req
+#from requests import get as get_req, post as post_req, patch as patch_req \
 from re import fullmatch, sub
 from sys import getsizeof
 
 from io import BytesIO
 
 import json
+import asyncio
+import aiohttp
 
 from nbs_parser import (
     TEMPO, Header, get_nbs_data, parse_nbs, get_duration_string,)
@@ -60,39 +62,60 @@ def get_noun_form(number: int, forms: Optional[tuple[str, str, str]] = None) -> 
     else:
         return f'{number} {forms[2]}'
 
+def remove_all_scopes():
+    remove('title')
+    remove('content')
+    remove('inputs')
+
+def check_constants():
+    LANG = translate.Main
+
+    not_passed = False
+
+    if JUSTNBS_GIST_ID is None:
+        put_markdown(LANG.NO_JUSTNBS_GIST_ID)
+    elif not bool(fullmatch(r'[0-9a-f]{32}', JUSTNBS_GIST_ID),):
+        put_markdown(LANG.WRONG_JUSTNBS_GIST_ID_FORMAT)
+    elif REQ_HEADERS is None:
+        put_markdown(LANG.NO_GIST_ACCESS_TOKEN)
+    elif not bool(
+        fullmatch(r'[0-9a-zA-Z]{36}', REQ_HEADERS['Authorization'][-36:]),
+        ) and not (
+            REQ_HEADERS['Authorization'][-40:][:4] == 'ghp_'):
+        put_markdown(LANG.WRONG_GIST_ACCESS_TOKEN_FORMAT)
+    else: not_passed = True
+
+    if not_passed: remove_all_scopes()
+
+def get_user_check_token():
+    global GITHUB_USER
+    LANG = translate.Main
+
+    test_token = get_req(url=f'{API_URL[:-5]}user', headers=REQ_HEADERS)
+
+    if test_token.status_code != 200:
+        remove('title')
+        remove('content')
+        remove('inputs')
+        if test_token == 403:
+            put_markdown(LANG.REACHED_API_LIMIT)
+        else:
+            put_markdown(LANG.INVALID_GIST_ACCESS_TOKEN)
+    else:
+        GITHUB_USER = test_token.json()['login']
+
 @config(theme='dark')
 def main():
     global translate
-
     if session_info.user_language == 'ru':
         import translation.ru as translate
     else:
         import translation.en as translate
-
     # ЗАГЛУШКА ДЛЯ РАЗРАБОТКИ
     import translation.ru as translate
 
     LANG = translate.Main
 
-    def check_token():
-        global GITHUB_USER
-        LANG = translate.Main
-
-        test_token = get_req(url=f'{API_URL[:-5]}user', headers=REQ_HEADERS)
-
-        if test_token.status_code == 403:
-            remove('title')
-            remove('content')
-            remove('inputs')
-            put_markdown(LANG.REACHED_API_LIMIT)
-        elif test_token.status_code != 200:
-            remove('title')
-            remove('content')
-            remove('inputs')
-            put_markdown(LANG.INVALID_GIST_ACCESS_TOKEN)
-        else:
-            GITHUB_USER = test_token.json()['login']
-    
     set_env(title=LANG.TAB_TITLE)
     # run_js("$('head link[rel=icon]').attr('href', image_url)", 
     #        image_url="https://www.python.org/static/favicon.ico")
@@ -103,32 +126,19 @@ def main():
     put_scope('inputs', position=3,)
     put_scope('latest_tracks', position=4,)
 
-    if JUSTNBS_GIST_ID is None:
-        put_markdown(LANG.NO_JUSTNBS_GIST_ID)
-    elif not bool(fullmatch(r'[0-9a-f]{32}', JUSTNBS_GIST_ID),):
-        put_markdown(LANG.WRONG_JUSTNBS_GIST_ID_FORMAT)
-
-    elif REQ_HEADERS is None:
-        put_markdown(LANG.NO_GIST_ACCESS_TOKEN)
-    elif not bool(
-            fullmatch(r'[0-9a-zA-Z]{36}', REQ_HEADERS['Authorization'][-36:]),
-        ) and not (
-            REQ_HEADERS['Authorization'][-40:][:4] == 'ghp_'
-        ):
-        put_markdown(LANG.WRONG_GIST_ACCESS_TOKEN_FORMAT)
-    else:
-        try:
-            with use_scope('image', clear=True,):
-                put_image(
-                    open(path.join('resources', None,), 'rb').read(),)
-                # put_image(
-                #     open(path.join('resources', LANG.LOGO,), 'rb').read(),)
-        except:
-            with use_scope('image', clear=True,):
-                put_markdown('# NO_IMAGE')
-        index_page()
-        check_token()
+    try:
+        with use_scope('image', clear=True,):
+            put_image(
+                open(path.join('resources', None,), 'rb').read(),)
+            # put_image(
+            #     open(path.join('resources', LANG.LOGO,), 'rb').read(),)
+    except:
+        with use_scope('image', clear=True,):
+            put_markdown('# NO_IMAGE')
     
+    get_user_check_token()
+    index_page()
+     
 def index_page(nickname: str = ''):
     LANG = translate.IndexPage
 
@@ -144,26 +154,26 @@ def index_page(nickname: str = ''):
     def button_actions(action: str):
         nonlocal nickname
         match action:
-            case 'btn_go_inp_nick':
+            case 'btn_nickname':
                 input_nickname_page(nickname)
             case 'btn_res_pack':
-                run_js(r"""
+                with run_js(r"""
                 navigator.clipboard.writeText(
                 "https://gitlab.com/-/snippets/3710689/raw/main/EXTENDED_1.13.zip"
                 ).then(function() {}, function(err) {
                     console.error('Could not copy text: ', err);
                 });
-                """)
-                popup(LANG.LINK_COPIED, [
-                    put_markdown(LANG.HOW_TO_USE_LINK),
-                    put_buttons(
-                        [
-                            dict(label=i[0], value=i[1], color=i[2])  
-                            for i in [
-                                [LANG.B_GOTCHA, 'btn_gotcha', 'primary'],]
-                        ], 
-                        onclick=lambda _: close_popup(),)
-                ])
+                """):
+                    popup(LANG.LINK_COPIED, [
+                        put_markdown(LANG.HOW_TO_USE_LINK),
+                        put_buttons(
+                            [
+                                dict(label=i[0], value=i[1], color=i[2])  
+                                for i in [
+                                    [LANG.B_GOTCHA, 'btn_gotcha', 'primary'],]
+                            ], 
+                            onclick=lambda _: close_popup(),)
+                    ])
             case 'btn_onbs_dwnld':
                 run_js(r"""
                 window.open(
@@ -173,8 +183,8 @@ def index_page(nickname: str = ''):
                 run_js(r"""
                 window.open("https://github.com/AMD-Boii/JustNBS-Player")
                 """)
-            case 'btn_go_search':
-                index_page()
+            case 'btn_search':
+                pass
     
     with use_scope('title', clear=True):
         put_markdown(LANG.WELCOME)
@@ -266,11 +276,12 @@ def input_nickname_page(nickname: str, upload: Optional[dict] = None,
 
     def check_nickname():
         nonlocal nickname
-        if not pin.inp_nickname is None:
-            pin.inp_nickname = sub(r'[^0-9a-zA-Z_]', '', pin.inp_nickname)
-            if len(pin.inp_nickname) > NICKNAME_MAX:
-                pin.inp_nickname = pin.inp_nickname[:NICKNAME_MAX]
-            nickname = pin.inp_nickname
+        inp_nickname = pin.inp_nickname
+        if not inp_nickname is None:
+            inp_nickname = pin.inp_nickname = sub(r'[^0-9a-zA-Z_]', '', inp_nickname)
+            if len(inp_nickname) > NICKNAME_MAX:
+                inp_nickname = pin.inp_nickname = inp_nickname[:NICKNAME_MAX]
+            nickname = inp_nickname
 
     def button_actions(action: str):
         nonlocal upload
@@ -330,7 +341,8 @@ def input_nickname_page(nickname: str, upload: Optional[dict] = None,
                     [LANG.B_CONTINUE, 'btn_continue', 'primary'],
                     [LANG.B_CANCEL, 'btn_cancel', 'danger'],]  
             ],
-            onclick=lambda value: button_actions(value),).style(STYLE_MARGIN_TOP)
+            onclick=lambda value: button_actions(value),
+        ).style(STYLE_MARGIN_TOP)
 
 def upload_page(nbs_data: Optional[tuple[Header, list, list,],],
                 nickname: str, upload: Optional[dict],):
@@ -417,7 +429,7 @@ def upload_page(nbs_data: Optional[tuple[Header, list, list,],],
     with use_scope('inputs', clear=True,):
         put_file_upload(
             name='uploaded_file',
-            label='Загрузите',
+            label=LANG.UPLOAD_A_FILE,
             accept='.nbs',
             max_size=f'{MAX_SIZE}K',
             placeholder=f'{LANG.ALREADY_UPLOADED} {upload['filename']}' if (
@@ -432,8 +444,8 @@ def upload_page(nbs_data: Optional[tuple[Header, list, list,],],
                     [LANG.B_BACK, 'btn_back', 'warning'],
                     [LANG.B_CANCEL, 'btn_cancel', 'danger'],]  
             ],
-            onclick=lambda value: button_actions(value),).style(STYLE_MARGIN_TOP)
-        # pin_wait_change('uploaded_file')
+            onclick=lambda value: button_actions(value),
+        ).style(STYLE_MARGIN_TOP)
 
 def custom_instuments_page(nbs_data: tuple[Header, list, list,], # TODO
                            nickname: str): 
